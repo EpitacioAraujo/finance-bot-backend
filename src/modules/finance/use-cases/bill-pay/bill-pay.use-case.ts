@@ -1,0 +1,82 @@
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { BillEntity } from '@/modules/finance/entities/bill.entity';
+import { UserEntity } from '@/modules/finance/entities/user.entity';
+import { BillListService } from '@/modules/finance/services/bill-list/bill-list.service';
+import {
+  TransactionCreateUseCase,
+  TransactionCreateUseCaseOutput,
+} from '@/modules/finance/use-cases/transaction-create/transaction-create.use-case';
+import { ConflictError, NotFoundError } from '@/shared/errors';
+import { addDays, isoToday, parseIso } from '@/shared/date';
+
+export interface BillPayInput {
+  userId: string;
+  billId: string;
+  amount?: number;
+  date?: string;
+  /** De onde saiu o dinheiro. Omitido, usa a forma de pagamento da conta. */
+  paymentMethod?: string;
+}
+
+/**
+ * Não existe "marcar conta como paga". Uma conta está paga porque existe uma
+ * transação apontando para ela — um estado, não dois.
+ */
+@Injectable()
+export class BillPayUseCase {
+  constructor(
+    @InjectRepository(BillEntity)
+    private readonly bills: Repository<BillEntity>,
+    @InjectRepository(UserEntity)
+    private readonly users: Repository<UserEntity>,
+    private readonly billList: BillListService,
+    private readonly transactionCreate: TransactionCreateUseCase,
+  ) {}
+
+  async exec(input: BillPayInput): Promise<TransactionCreateUseCaseOutput> {
+    const user = await this.users.findOne({
+      where: { id: input.userId, active: true },
+    });
+    if (!user) throw new NotFoundError('Usuário não encontrado');
+
+    const bill = await this.bills.findOne({
+      where: { id: input.billId, userId: input.userId },
+      relations: { paymentMethod: true, tag: true },
+    });
+    if (!bill) throw new NotFoundError('Conta não encontrada');
+
+    const date = input.date ?? isoToday(user.timezone);
+
+    const nearby = await this.billList.exec({
+      userId: input.userId,
+      from: addDays(date, -20),
+      to: addDays(date, 20),
+    });
+    const occurrence = nearby
+      .filter((view) => view.id === bill.id)
+      .sort(
+        (a, b) =>
+          Math.abs(parseIso(a.occurrenceDate).getTime() - parseIso(date).getTime()) -
+          Math.abs(parseIso(b.occurrenceDate).getTime() - parseIso(date).getTime()),
+      )[0];
+
+    if (occurrence?.paid) {
+      throw new ConflictError(
+        `"${bill.description}" de ${occurrence.occurrenceDate} já está paga`,
+      );
+    }
+
+    return this.transactionCreate.exec({
+      userId: input.userId,
+      description: bill.description,
+      amount: input.amount ?? bill.predictedAmount,
+      type: 'expense',
+      date,
+      paymentMethod: input.paymentMethod ?? bill.paymentMethod?.description ?? '',
+      tags: bill.tag ? [bill.tag.description] : [],
+      billId: bill.id,
+    });
+  }
+}
