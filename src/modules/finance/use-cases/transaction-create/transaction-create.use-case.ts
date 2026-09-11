@@ -26,6 +26,7 @@ export interface TransactionCreateUseCaseInput {
   tags?: string[];
   installments?: number;
   billId?: string | null;
+  billOccurrenceDate?: string | null;
   originMessageId?: string | null;
   notes?: string | null;
 }
@@ -88,6 +89,7 @@ export class TransactionCreateUseCase {
         tagIds: tags.map((tag) => tag.id),
         cycleId: cycle?.id ?? null,
         billId: input.billId ?? null,
+        billOccurrenceDate: input.billOccurrenceDate ?? null,
         installments,
         originMessageId: input.originMessageId ?? null,
         notes: input.notes ?? null,

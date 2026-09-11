@@ -70,6 +70,13 @@ export class TransactionEntity extends BaseEntity {
   @Column('varchar', { length: 26, nullable: true })
   billId!: string | null;
 
+  /**
+   * Qual ocorrência da conta este pagamento quita. Sem isto, um pagamento único
+   * apareceria como pagando todo mês próximo o bastante.
+   */
+  @Column('date', { nullable: true })
+  billOccurrenceDate!: string | null;
+
   /** 1 = à vista. */
   @Column('smallint', { default: 1 })
   installments!: number;

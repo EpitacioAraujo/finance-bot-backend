@@ -16,6 +16,8 @@ export interface BillPayInput {
   billId: string;
   amount?: number;
   date?: string;
+  /** Qual vencimento está sendo pago; a tela sabe, o WhatsApp não. */
+  occurrenceDate?: string;
   /** De onde saiu o dinheiro. Omitido, usa a forma de pagamento da conta. */
   paymentMethod?: string;
 }
@@ -49,18 +51,28 @@ export class BillPayUseCase {
 
     const date = input.date ?? isoToday(user.timezone);
 
-    const nearby = await this.billList.exec({
-      userId: input.userId,
-      from: addDays(date, -20),
-      to: addDays(date, 20),
-    });
-    const occurrence = nearby
-      .filter((view) => view.id === bill.id)
-      .sort(
-        (a, b) =>
-          Math.abs(parseIso(a.occurrenceDate).getTime() - parseIso(date).getTime()) -
-          Math.abs(parseIso(b.occurrenceDate).getTime() - parseIso(date).getTime()),
-      )[0];
+    // A tela diz qual ocorrência está pagando. Pelo WhatsApp não vem nada, e aí
+    // vale a ocorrência mais próxima da data do pagamento.
+    const window = input.occurrenceDate
+      ? { from: input.occurrenceDate, to: input.occurrenceDate }
+      : { from: addDays(date, -20), to: addDays(date, 20) };
+
+    const nearby = await this.billList.exec({ userId: input.userId, ...window });
+    const candidates = nearby.items.filter((view) => view.id === bill.id);
+
+    const occurrence = input.occurrenceDate
+      ? candidates[0]
+      : candidates.sort(
+          (a, b) =>
+            Math.abs(parseIso(a.occurrenceDate).getTime() - parseIso(date).getTime()) -
+            Math.abs(parseIso(b.occurrenceDate).getTime() - parseIso(date).getTime()),
+        )[0];
+
+    if (input.occurrenceDate && !occurrence) {
+      throw new NotFoundError(
+        `"${bill.description}" não vence em ${input.occurrenceDate}`,
+      );
+    }
 
     if (occurrence?.paid) {
       throw new ConflictError(
@@ -77,6 +89,7 @@ export class BillPayUseCase {
       paymentMethod: input.paymentMethod ?? bill.paymentMethod?.description ?? '',
       tags: bill.tag ? [bill.tag.description] : [],
       billId: bill.id,
+      billOccurrenceDate: occurrence?.occurrenceDate ?? null,
     });
   }
 }

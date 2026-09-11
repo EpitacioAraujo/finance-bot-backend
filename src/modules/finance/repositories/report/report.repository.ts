@@ -44,9 +44,7 @@ export class ReportRepository {
       .createQueryBuilder('t')
       .where('t.user_id = :userId', { userId })
       .andWhere('t.date BETWEEN :from AND :to', { from, to })
-      .andWhere('t.type = :type', { type })
-      .addSelect('SUM(t.amount)', 'total')
-      .addSelect('COUNT(t.id)', 'count');
+      .andWhere('t.type = :type', { type });
 
     if (groupBy === 'tag') {
       query
@@ -64,6 +62,9 @@ export class ReportRepository {
         .groupBy('g.id')
         .addGroupBy('g.description');
     }
+
+    // Depois do `select` do agrupamento: `select` zera o que veio antes dele.
+    query.addSelect('SUM(t.amount)', 'total').addSelect('COUNT(t.id)', 'count');
 
     const groups = await query.getRawMany<{
       key: string | null;

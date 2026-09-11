@@ -19,6 +19,7 @@ export interface TransactionCreateInput {
   tagIds?: string[];
   cycleId?: string | null;
   billId?: string | null;
+  billOccurrenceDate?: string | null;
   installments?: number;
   originMessageId?: string | null;
   notes?: string | null;
@@ -59,6 +60,7 @@ export class TransactionCreateService {
         paymentMethodId: input.paymentMethodId,
         cycleId: input.cycleId ?? null,
         billId: input.billId ?? null,
+        billOccurrenceDate: input.billOccurrenceDate ?? null,
         installments,
         originMessageId: input.originMessageId ?? null,
         notes: input.notes ?? null,

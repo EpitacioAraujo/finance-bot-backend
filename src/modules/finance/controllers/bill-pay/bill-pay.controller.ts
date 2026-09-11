@@ -9,6 +9,7 @@ import { TransactionCreateUseCaseOutput } from '@/modules/finance/use-cases/tran
 export class BillPayBodyDto {
   @IsOptional() @IsNumber() @Min(0.01) amount?: number;
   @IsOptional() @IsDateString() date?: string;
+  @IsOptional() @IsDateString() occurrenceDate?: string;
   @IsOptional() @IsString() paymentMethod?: string;
 }
 

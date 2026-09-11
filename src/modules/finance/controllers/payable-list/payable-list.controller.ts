@@ -2,26 +2,26 @@ import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { IsDateString, IsIn, IsOptional } from 'class-validator';
 import { CurrentUser, CurrentUserGuard } from '@/shared/current-user';
 import {
-  BillListResult,
-  BillListService,
-} from '@/modules/finance/services/bill-list/bill-list.service';
+  PayableListOutput,
+  PayableListUseCase,
+} from '@/modules/finance/use-cases/payable-list/payable-list.use-case';
 
-export class BillListQueryDto {
+export class PayableListQueryDto {
   @IsDateString() from!: string;
   @IsDateString() to!: string;
   @IsOptional() @IsIn(['paid', 'pending']) status?: 'paid' | 'pending';
 }
 
-@Controller('bills')
+@Controller('payables')
 @UseGuards(CurrentUserGuard)
-export class BillListController {
-  constructor(private readonly service: BillListService) {}
+export class PayableListController {
+  constructor(private readonly useCase: PayableListUseCase) {}
 
   @Get()
   async exec(
     @CurrentUser() userId: string,
-    @Query() query: BillListQueryDto,
-  ): Promise<BillListResult> {
-    return this.service.exec({ userId, ...query });
+    @Query() query: PayableListQueryDto,
+  ): Promise<PayableListOutput> {
+    return this.useCase.exec({ userId, ...query });
   }
 }
