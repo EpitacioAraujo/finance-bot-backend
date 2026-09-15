@@ -139,7 +139,7 @@ export class ActionRunnerService {
           date: p.date as string | undefined,
         }),
       delete_transaction: (userId, p) =>
-        this.transactionDelete.exec({ userId, id: p.id as string }),
+        this.transactionDelete.exec({ userId, ids: [p.id as string] }),
       pay_split: async (userId, p) => {
         const splits = await this.splitList.exec({
           userId,

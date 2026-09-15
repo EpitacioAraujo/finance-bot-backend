@@ -61,9 +61,14 @@ export class PlanRequestService {
 
     let parsed: Record<string, unknown>;
     try {
-      parsed = JSON.parse(content) as Record<string, unknown>;
+      // Mesmo com response_format o modelo às vezes cerca em ```json.
+      parsed = JSON.parse(
+        content.replace(/^\s*```(?:json)?\s*|\s*```\s*$/g, ''),
+      ) as Record<string, unknown>;
     } catch {
-      throw new ValidationError('O plano não veio em JSON válido');
+      throw new ValidationError(
+        `O plano não veio em JSON válido: ${content.slice(0, 300)}`,
+      );
     }
 
     if (typeof parsed.reply !== 'string') {
