@@ -13,6 +13,6 @@ export class TransactionDeleteController {
     @CurrentUser() userId: string,
     @Param('id') id: string,
   ): Promise<void> {
-    await this.service.exec({ userId, id });
+    await this.service.exec({ userId, ids: [id] });
   }
 }

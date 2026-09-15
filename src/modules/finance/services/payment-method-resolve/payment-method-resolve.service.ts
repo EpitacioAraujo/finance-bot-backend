@@ -7,10 +7,13 @@ import { matchByDescription } from '@/shared/text-match';
 
 interface Input {
   userId: string;
-  text: string;
+  /** O agente manda nome. */
+  text?: string;
+  /** A web manda id. */
+  id?: string;
 }
 
-/** "Nu Pj" vira id. O agente manda nome, nunca id. */
+/** Referência → entidade: "Nu Pj" ou o id, conforme quem chama. */
 @Injectable()
 export class PaymentMethodResolveService {
   constructor(
@@ -18,11 +21,19 @@ export class PaymentMethodResolveService {
     private readonly repo: Repository<PaymentMethodEntity>,
   ) {}
 
-  async exec({ userId, text }: Input): Promise<PaymentMethodEntity> {
+  async exec({ userId, text, id }: Input): Promise<PaymentMethodEntity> {
+    if (id) {
+      const found = await this.repo.findOne({
+        where: { id, userId, active: true },
+      });
+      if (!found) throw new NotFoundError('Forma de pagamento não encontrada');
+      return found;
+    }
+
     // Um usuário tem poucas formas de pagamento — filtrar em memória evita
     // depender da extensão unaccent no Postgres.
     const all = await this.repo.find({ where: { userId, active: true } });
-    const matches = matchByDescription(all, text);
+    const matches = matchByDescription(all, text ?? '');
 
     if (matches.length === 0) {
       throw new NotFoundError(`Não achei a forma de pagamento "${text}"`);

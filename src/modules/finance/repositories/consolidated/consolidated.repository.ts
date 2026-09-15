@@ -35,7 +35,7 @@ export class ConsolidatedRepository {
       `
       SELECT c.id                AS cycle_id,
              c.reference_month   AS reference_month,
-             c.due_date          AS due_date,
+             c.due_date::text    AS due_date,
              c.closed_at         AS closed_at,
              pm.id               AS payment_method_id,
              pm.description      AS payment_method_description,

@@ -6,7 +6,7 @@ import {
   BillEntity,
   BillFrequency,
 } from '@/modules/finance/entities/bill.entity';
-import { assertBillSchedule } from '@/modules/finance/rules';
+import { applyBillSchedule } from '@/modules/finance/rules';
 import { ValidationError } from '@/shared/errors';
 
 export interface BillCreateInput {
@@ -33,22 +33,22 @@ export class BillCreateService {
     if (input.predictedAmount <= 0) {
       throw new ValidationError('O valor previsto precisa ser maior que zero');
     }
-    assertBillSchedule(input);
 
-    return this.repo.save(
-      this.repo.create({
-        id: ulid(),
-        userId: input.userId,
-        description: input.description.trim(),
-        predictedAmount: input.predictedAmount,
-        frequency: input.frequency,
-        paymentMethodId: input.paymentMethodId,
-        dueDate: input.dueDate ?? null,
-        dueDay: input.dueDay ?? null,
-        tagId: input.tagId ?? null,
-        notes: input.notes ?? null,
-        active: input.active ?? true,
-      }),
-    );
+    const bill = this.repo.create({
+      id: ulid(),
+      userId: input.userId,
+      description: input.description.trim(),
+      predictedAmount: input.predictedAmount,
+      frequency: input.frequency,
+      paymentMethodId: input.paymentMethodId,
+      dueDate: input.dueDate ?? null,
+      dueDay: input.dueDay ?? null,
+      tagId: input.tagId ?? null,
+      notes: input.notes ?? null,
+      active: input.active ?? true,
+    });
+    applyBillSchedule(bill);
+
+    return this.repo.save(bill);
   }
 }

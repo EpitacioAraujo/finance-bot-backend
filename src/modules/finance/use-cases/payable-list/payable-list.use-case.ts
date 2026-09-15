@@ -2,12 +2,8 @@ import { Injectable } from '@nestjs/common';
 import {
   BillListService,
   BillSummary,
-  BillView,
 } from '@/modules/finance/services/bill-list/bill-list.service';
-import {
-  ConsolidatedListService,
-  ConsolidatedView,
-} from '@/modules/finance/services/consolidated-list/consolidated-list.service';
+import { ConsolidatedListService } from '@/modules/finance/services/consolidated-list/consolidated-list.service';
 
 export interface PayableListInput {
   userId: string;
@@ -16,17 +12,36 @@ export interface PayableListInput {
   status?: 'paid' | 'pending';
 }
 
+export interface PayableItem {
+  kind: 'bill' | 'cycle';
+  /** bill.id ou cycle.id — é o que vai na URL de pay/edit/delete. */
+  id: string;
+  /** Chave de linha: conta recorrente repete `id` por ocorrência. */
+  key: string;
+  /** bill: description · cycle: `Fatura ${paymentMethod.description}` */
+  description: string;
+  /** 'YYYY-MM-DD' nos dois casos. */
+  dueDate: string;
+  /** bill: paidAmount ?? predictedAmount · cycle: total */
+  amount: number;
+  /** bill: paid · cycle: closedAt !== null */
+  status: 'paid' | 'pending';
+  paymentMethod: { id: string; description: string };
+  /** Só cycle: compras na fatura. */
+  itemCount: number | null;
+}
+
 export interface PayableListOutput {
-  bills: BillView[];
-  cycles: ConsolidatedView[];
-  /** Cobre conta e fatura juntas; o filtro de status só corta as listas. */
+  /** Conta + fatura numa lista só, ordenada por dueDate. */
+  items: PayableItem[];
+  /** Cobre conta e fatura juntas; o filtro de status só corta `items`. */
   summary: BillSummary;
 }
 
 /**
  * "Contas a pagar" na tela é conta + fatura de cartão, que vivem em serviços
- * diferentes. O total tem que sair daqui: somar os dois no cliente espalharia
- * regra de negócio pelo front.
+ * diferentes. Juntar, nivelar o status e somar tem que sair daqui: fazer isso
+ * no cliente espalharia regra de negócio pelo front.
  */
 @Injectable()
 export class PayableListUseCase {
@@ -53,13 +68,35 @@ export class PayableListUseCase {
       0,
     );
 
+    const items: PayableItem[] = [
+      ...bills.items.map((bill) => ({
+        kind: 'bill' as const,
+        id: bill.id,
+        key: `${bill.id}-${bill.occurrenceDate}`,
+        description: bill.description,
+        dueDate: bill.occurrenceDate,
+        amount: bill.paidAmount ?? bill.predictedAmount,
+        status: bill.paid ? ('paid' as const) : ('pending' as const),
+        paymentMethod: bill.paymentMethod,
+        itemCount: null,
+      })),
+      ...cycles.map((cycle) => ({
+        kind: 'cycle' as const,
+        id: cycle.cycleId,
+        key: cycle.cycleId,
+        description: `Fatura ${cycle.paymentMethod.description}`,
+        dueDate: cycle.dueDate,
+        amount: cycle.total,
+        status: cycle.closedAt ? ('paid' as const) : ('pending' as const),
+        paymentMethod: cycle.paymentMethod,
+        itemCount: cycle.itemCount,
+      })),
+    ];
+
     return {
-      bills: bills.items,
-      cycles: status
-        ? cycles.filter(
-            (cycle) => Boolean(cycle.closedAt) === (status === 'paid'),
-          )
-        : cycles,
+      items: items
+        .filter((item) => !status || item.status === status)
+        .sort((a, b) => a.dueDate.localeCompare(b.dueDate)),
       summary: {
         totalPredicted: bills.summary.totalPredicted + cycleTotal,
         totalPaid: bills.summary.totalPaid + cyclePaid,

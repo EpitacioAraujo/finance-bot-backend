@@ -32,6 +32,8 @@ import { TagDeleteService } from './services/tag-delete/tag-delete.service';
 import { BillCreateService } from './services/bill-create/bill-create.service';
 import { BillListService } from './services/bill-list/bill-list.service';
 import { BillGetService } from './services/bill-get/bill-get.service';
+import { PaymentMethodGetService } from './services/payment-method-get/payment-method-get.service';
+import { TagGetService } from './services/tag-get/tag-get.service';
 import { ConsolidatedItemsService } from './services/consolidated-items/consolidated-items.service';
 import { PayableListUseCase } from './use-cases/payable-list/payable-list.use-case';
 import { DashboardUseCase } from './use-cases/dashboard/dashboard.use-case';
@@ -49,6 +51,7 @@ import { TransactionGetController } from './controllers/transaction-get/transact
 import { TransactionCreateController } from './controllers/transaction-create/transaction-create.controller';
 import { TransactionUpdateController } from './controllers/transaction-update/transaction-update.controller';
 import { TransactionDeleteController } from './controllers/transaction-delete/transaction-delete.controller';
+import { TransactionBulkDeleteController } from './controllers/transaction-bulk-delete/transaction-bulk-delete.controller';
 import { SplitPayController } from './controllers/split-pay/split-pay.controller';
 import { PaymentMethodListController } from './controllers/payment-method-list/payment-method-list.controller';
 import { PaymentMethodCreateController } from './controllers/payment-method-create/payment-method-create.controller';
@@ -60,6 +63,8 @@ import { TagUpdateController } from './controllers/tag-update/tag-update.control
 import { TagDeleteController } from './controllers/tag-delete/tag-delete.controller';
 import { BillListController } from './controllers/bill-list/bill-list.controller';
 import { BillGetController } from './controllers/bill-get/bill-get.controller';
+import { PaymentMethodGetController } from './controllers/payment-method-get/payment-method-get.controller';
+import { TagGetController } from './controllers/tag-get/tag-get.controller';
 import { ConsolidatedItemsController } from './controllers/consolidated-items/consolidated-items.controller';
 import { PayableListController } from './controllers/payable-list/payable-list.controller';
 import { DashboardController } from './controllers/dashboard/dashboard.controller';
@@ -98,6 +103,8 @@ const providers = [
   BillCreateService,
   BillListService,
   BillGetService,
+  PaymentMethodGetService,
+  TagGetService,
   ConsolidatedItemsService,
   PayableListUseCase,
   DashboardUseCase,
@@ -131,6 +138,7 @@ const providers = [
     TransactionCreateController,
     TransactionUpdateController,
     TransactionDeleteController,
+    TransactionBulkDeleteController,
     SplitPayController,
     PaymentMethodListController,
     PaymentMethodCreateController,
@@ -142,6 +150,8 @@ const providers = [
     TagDeleteController,
     BillListController,
     BillGetController,
+    PaymentMethodGetController,
+    TagGetController,
     ConsolidatedItemsController,
     PayableListController,
     DashboardController,

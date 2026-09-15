@@ -5,7 +5,7 @@ import {
   PaymentMethodEntity,
   PaymentMethodKind,
 } from '@/modules/finance/entities/payment-method.entity';
-import { assertPaymentMethodKind } from '@/modules/finance/rules';
+import { applyPaymentMethodKind } from '@/modules/finance/rules';
 import { NotFoundError } from '@/shared/errors';
 
 export interface PaymentMethodUpdateInput {
@@ -35,7 +35,7 @@ export class PaymentMethodUpdateService {
     if (!method) throw new NotFoundError('Forma de pagamento não encontrada');
 
     Object.assign(method, fields);
-    assertPaymentMethodKind(method);
+    applyPaymentMethodKind(method);
 
     return this.repo.save(method);
   }

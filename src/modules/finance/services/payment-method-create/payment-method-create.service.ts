@@ -6,7 +6,7 @@ import {
   PaymentMethodEntity,
   PaymentMethodKind,
 } from '@/modules/finance/entities/payment-method.entity';
-import { assertPaymentMethodKind } from '@/modules/finance/rules';
+import { applyPaymentMethodKind } from '@/modules/finance/rules';
 
 export interface PaymentMethodCreateInput {
   userId: string;
@@ -25,19 +25,18 @@ export class PaymentMethodCreateService {
   ) {}
 
   async exec(input: PaymentMethodCreateInput): Promise<PaymentMethodEntity> {
-    assertPaymentMethodKind(input);
+    const method = this.repo.create({
+      id: ulid(),
+      userId: input.userId,
+      description: input.description.trim(),
+      kind: input.kind,
+      closingDay: input.closingDay ?? null,
+      dueDay: input.dueDay ?? null,
+      showInBills: input.showInBills ?? input.kind === 'credit',
+      active: true,
+    });
+    applyPaymentMethodKind(method);
 
-    return this.repo.save(
-      this.repo.create({
-        id: ulid(),
-        userId: input.userId,
-        description: input.description.trim(),
-        kind: input.kind,
-        closingDay: input.closingDay ?? null,
-        dueDay: input.dueDay ?? null,
-        showInBills: input.showInBills ?? input.kind === 'credit',
-        active: true,
-      }),
-    );
+    return this.repo.save(method);
   }
 }

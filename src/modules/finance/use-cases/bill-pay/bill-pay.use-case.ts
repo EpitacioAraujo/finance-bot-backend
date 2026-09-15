@@ -45,7 +45,6 @@ export class BillPayUseCase {
 
     const bill = await this.bills.findOne({
       where: { id: input.billId, userId: input.userId },
-      relations: { paymentMethod: true, tag: true },
     });
     if (!bill) throw new NotFoundError('Conta não encontrada');
 
@@ -86,8 +85,11 @@ export class BillPayUseCase {
       amount: input.amount ?? bill.predictedAmount,
       type: 'expense',
       date,
-      paymentMethod: input.paymentMethod ?? bill.paymentMethod?.description ?? '',
-      tags: bill.tag ? [bill.tag.description] : [],
+      // A conta já tem os ids; só o override do agente vem como texto.
+      ...(input.paymentMethod
+        ? { paymentMethod: input.paymentMethod }
+        : { paymentMethodId: bill.paymentMethodId }),
+      tagIds: bill.tagId ? [bill.tagId] : [],
       billId: bill.id,
       billOccurrenceDate: occurrence?.occurrenceDate ?? null,
     });

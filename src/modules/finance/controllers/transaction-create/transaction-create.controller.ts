@@ -10,6 +10,7 @@ import {
   IsString,
   Max,
   Min,
+  ValidateIf,
 } from 'class-validator';
 import { CurrentUser, CurrentUserGuard } from '@/shared/current-user';
 import {
@@ -21,9 +22,11 @@ export class TransactionCreateBodyDto {
   @IsString() description!: string;
   @IsNumber() @Min(0.01) amount!: number;
   @IsIn(['income', 'expense']) type!: 'income' | 'expense';
-  @IsString() paymentMethod!: string;
+  @ValidateIf((o: TransactionCreateBodyDto) => !o.paymentMethodId) @IsString() paymentMethod?: string;
+  @IsOptional() @IsString() paymentMethodId?: string;
   @IsOptional() @IsDateString() date?: string;
   @IsOptional() @IsArray() @IsString({ each: true }) @ArrayMaxSize(10) tags?: string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) @ArrayMaxSize(10) tagIds?: string[];
   @IsOptional() @IsInt() @Min(1) @Max(99) installments?: number;
   @IsOptional() @IsString() notes?: string;
 }

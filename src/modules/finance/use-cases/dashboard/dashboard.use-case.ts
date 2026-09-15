@@ -61,15 +61,16 @@ export class DashboardUseCase {
       });
     }
 
+    const pending = payables.items.filter((item) => item.status === 'pending');
+
     // Fatura fechada já não pesa: as compras dela entraram como despesa na data
     // em que aconteceram.
-    for (const cycle of payables.cycles) {
-      if (cycle.closedAt) continue;
+    for (const cycle of pending.filter((item) => item.kind === 'cycle')) {
       const current = byPaymentMethod.get(cycle.paymentMethod.id);
       byPaymentMethod.set(cycle.paymentMethod.id, {
         key: cycle.paymentMethod.id,
         label: cycle.paymentMethod.description,
-        total: (current?.total ?? 0) + cycle.total,
+        total: (current?.total ?? 0) + cycle.amount,
       });
     }
 
@@ -82,12 +83,12 @@ export class DashboardUseCase {
       byPaymentMethod: [...byPaymentMethod.values()].sort(
         (a, b) => b.total - a.total,
       ),
-      pendingBills: payables.bills
-        .filter((bill) => !bill.paid)
+      pendingBills: pending
+        .filter((item) => item.kind === 'bill')
         .map((bill) => ({
-          key: `${bill.id}-${bill.occurrenceDate}`,
+          key: bill.key,
           label: bill.description,
-          total: bill.predictedAmount,
+          total: bill.amount,
         }))
         .sort((a, b) => b.total - a.total),
     };

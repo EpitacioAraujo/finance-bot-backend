@@ -20,10 +20,13 @@ export interface TransactionCreateUseCaseInput {
   description: string;
   amount: number;
   type: TransactionType;
-  /** Nome da forma de pagamento. O agente manda texto, nunca id. */
-  paymentMethod: string;
+  /** Exatamente um dos dois: o agente manda nome, a web manda id. */
+  paymentMethod?: string;
+  paymentMethodId?: string;
   date?: string;
+  /** Idem: nomes do agente, ids da web. */
   tags?: string[];
+  tagIds?: string[];
   installments?: number;
   billId?: string | null;
   billOccurrenceDate?: string | null;
@@ -59,10 +62,12 @@ export class TransactionCreateUseCase {
     const method = await this.paymentMethodResolve.exec({
       userId: input.userId,
       text: input.paymentMethod,
+      id: input.paymentMethodId,
     });
     const tags = await this.tagResolve.exec({
       userId: input.userId,
-      texts: input.tags ?? [],
+      texts: input.tags,
+      ids: input.tagIds,
     });
 
     const date = input.date ?? isoToday(user.timezone);

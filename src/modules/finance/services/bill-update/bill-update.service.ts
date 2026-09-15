@@ -5,7 +5,7 @@ import {
   BillEntity,
   BillFrequency,
 } from '@/modules/finance/entities/bill.entity';
-import { assertBillSchedule } from '@/modules/finance/rules';
+import { applyBillSchedule } from '@/modules/finance/rules';
 import { NotFoundError } from '@/shared/errors';
 
 export interface BillUpdateInput {
@@ -34,7 +34,7 @@ export class BillUpdateService {
     if (!bill) throw new NotFoundError('Conta não encontrada');
 
     Object.assign(bill, fields);
-    assertBillSchedule(bill);
+    applyBillSchedule(bill);
 
     return this.repo.save(bill);
   }

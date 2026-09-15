@@ -8,8 +8,8 @@ import {
 } from '@/modules/finance/services/transaction-list/transaction-list.service';
 
 export class TransactionListQueryDto {
-  @IsDateString() from!: string;
-  @IsDateString() to!: string;
+  @IsOptional() @IsDateString() from?: string;
+  @IsOptional() @IsDateString() to?: string;
   @IsOptional() @IsIn(['income', 'expense']) type?: 'income' | 'expense';
   @IsOptional() @IsString() tagId?: string;
   @IsOptional() @IsString() paymentMethodId?: string;
