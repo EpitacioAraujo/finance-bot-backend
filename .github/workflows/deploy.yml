@@ -1,0 +1,28 @@
+name: deploy
+on:
+  push:
+    branches: [master]
+# Pushes em sequência esperam em fila em vez de disputar a VPS.
+concurrency: deploy
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: chave ssh
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          echo "${{ secrets.VPS_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519
+      # Sem dist/ e node_modules/: o build é na VPS, dentro do docker.
+      - name: sync
+        run: >
+          rsync -az --delete --exclude .git --exclude '.env*' --exclude node_modules --exclude dist
+          -e "ssh -p ${{ secrets.VPS_PORT }}"
+          ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:workspace/finance-bot/backend/
+      # flock: deploy do backend e do front podem cair juntos; a VPS tem 3.8G.
+      - name: up
+        run: >
+          ssh -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}
+          'cd workspace/finance-bot/infra && flock /tmp/finance-bot-deploy.lock make build-one s=backend'
