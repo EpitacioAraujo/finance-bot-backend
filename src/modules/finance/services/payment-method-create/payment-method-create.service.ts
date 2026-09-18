@@ -7,6 +7,7 @@ import {
   PaymentMethodKind,
 } from '@/modules/finance/entities/payment-method.entity';
 import { applyPaymentMethodKind } from '@/modules/finance/rules';
+import { ConflictError } from '@/shared/errors';
 
 export interface PaymentMethodCreateInput {
   userId: string;
@@ -25,10 +26,20 @@ export class PaymentMethodCreateService {
   ) {}
 
   async exec(input: PaymentMethodCreateInput): Promise<PaymentMethodEntity> {
+    const description = input.description.trim();
+    // Sem isto a duplicata estoura no índice único como erro genérico: o job
+    // do agente falha, ninguém responde e a conversa fica presa.
+    const existing = await this.repo.findOne({
+      where: { userId: input.userId, description },
+    });
+    if (existing) {
+      throw new ConflictError(`A forma de pagamento "${description}" já existe`);
+    }
+
     const method = this.repo.create({
       id: ulid(),
       userId: input.userId,
-      description: input.description.trim(),
+      description,
       kind: input.kind,
       closingDay: input.closingDay ?? null,
       dueDay: input.dueDay ?? null,
