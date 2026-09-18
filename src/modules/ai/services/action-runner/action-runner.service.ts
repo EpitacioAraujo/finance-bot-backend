@@ -6,6 +6,7 @@ import {
   validateParams,
 } from '@/modules/ai/catalog/actions';
 import { AmbiguousError, DomainError, ValidationError } from '@/shared/errors';
+import { BillFrequency } from '@/modules/finance/entities/bill.entity';
 
 import { PaymentMethodListService } from '@/modules/finance/services/payment-method-list/payment-method-list.service';
 import { PaymentMethodCreateService } from '@/modules/finance/services/payment-method-create/payment-method-create.service';
@@ -17,6 +18,8 @@ import { TransactionDeleteService } from '@/modules/finance/services/transaction
 import { SplitListService } from '@/modules/finance/services/split-list/split-list.service';
 import { SplitPayService } from '@/modules/finance/services/split-pay/split-pay.service';
 import { BillListService } from '@/modules/finance/services/bill-list/bill-list.service';
+import { BillCreateService } from '@/modules/finance/services/bill-create/bill-create.service';
+import { PaymentMethodResolveService } from '@/modules/finance/services/payment-method-resolve/payment-method-resolve.service';
 import { ReportService } from '@/modules/finance/services/report/report.service';
 import { ConsolidatedListService } from '@/modules/finance/services/consolidated-list/consolidated-list.service';
 import { ConsolidatedPayService } from '@/modules/finance/services/consolidated-pay/consolidated-pay.service';
@@ -73,6 +76,8 @@ export class ActionRunnerService {
     private readonly splitList: SplitListService,
     private readonly splitPay: SplitPayService,
     private readonly billList: BillListService,
+    private readonly billCreate: BillCreateService,
+    private readonly paymentMethodResolve: PaymentMethodResolveService,
     private readonly report: ReportService,
     private readonly consolidatedList: ConsolidatedListService,
     private readonly consolidatedPay: ConsolidatedPayService,
@@ -171,6 +176,25 @@ export class ActionRunnerService {
         }),
       create_tag: (userId, p) =>
         this.tagCreate.exec({ userId, description: p.description as string }),
+      create_bill: async (userId, p) => {
+        const method = await this.paymentMethodResolve.exec({
+          userId,
+          text: p.paymentMethod as string,
+        });
+        const [tag] = p.tag
+          ? await this.tagResolve.exec({ userId, texts: [p.tag as string] })
+          : [];
+        return this.billCreate.exec({
+          userId,
+          description: p.description as string,
+          predictedAmount: p.predictedAmount as number,
+          frequency: p.frequency as BillFrequency,
+          paymentMethodId: method.id,
+          dueDay: p.dueDay as number | undefined,
+          dueDate: p.dueDate as string | undefined,
+          tagId: tag?.id,
+        });
+      },
     };
   }
 

@@ -52,6 +52,8 @@ const rules = (context: PromptContext): string =>
     '  Quer confirmação antes? Devolva actions vazio e só a pergunta.',
     '- Nunca repita uma ação que já apareceu como executada no histórico.',
     '- No reply, repita o que foi gravado para o usuário perceber se entendeu errado.',
+    '- "todo mês", "fixo", "recorrente" → create_bill, não create_transaction.',
+    '  Faltou dia de vencimento? Pergunte.',
     '',
     'Ações disponíveis:',
     ...Object.entries(ACTIONS).map(

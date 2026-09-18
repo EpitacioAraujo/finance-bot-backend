@@ -161,6 +161,24 @@ export const ACTIONS = {
       'Cria tag. Só quando o usuário pedir explicitamente — nunca para fechar uma compra.',
     params: { description: { type: 'string', required: true } },
   },
+  create_bill: {
+    kind: 'command',
+    description:
+      'Cadastra uma conta recorrente ou prevista (aluguel, internet, IPTU). monthly exige dueDay; none e yearly exigem dueDate. Use o nome da forma de pagamento e da tag, nunca um id.',
+    params: {
+      description: { type: 'string', required: true },
+      predictedAmount: { type: 'number', required: true },
+      frequency: {
+        type: 'string',
+        enum: ['none', 'monthly', 'yearly'],
+        required: true,
+      },
+      paymentMethod: { type: 'string', required: true },
+      dueDay: { type: 'number', max: 31 },
+      dueDate: { type: 'date' },
+      tag: { type: 'string' },
+    },
+  },
 } as const satisfies Record<string, ActionSpec>;
 
 export type ActionName = keyof typeof ACTIONS;
