@@ -1,3 +1,4 @@
+import { TRANSACTION_TYPES } from '@/modules/finance/entities/transaction.entity';
 import { ValidationError } from '@/shared/errors';
 
 type FieldType = 'string' | 'number' | 'boolean' | 'date' | 'string[]';
@@ -42,7 +43,7 @@ export const ACTIONS = {
     params: {
       from: { type: 'date', required: true },
       to: { type: 'date', required: true },
-      type: { type: 'string', enum: ['income', 'expense'] },
+      type: { type: 'string', enum: TRANSACTION_TYPES },
       tag: { type: 'string' },
       paymentMethod: { type: 'string' },
       limit: { type: 'number', max: 200 },
@@ -73,7 +74,7 @@ export const ACTIONS = {
         enum: ['tag', 'payment_method', 'none'],
         required: true,
       },
-      type: { type: 'string', enum: ['income', 'expense'] },
+      type: { type: 'string', enum: TRANSACTION_TYPES },
     },
   },
   list_consolidated: {
@@ -92,7 +93,7 @@ export const ACTIONS = {
     params: {
       description: { type: 'string', required: true },
       amount: { type: 'number', required: true },
-      type: { type: 'string', enum: ['income', 'expense'], required: true },
+      type: { type: 'string', enum: TRANSACTION_TYPES, required: true },
       paymentMethod: { type: 'string', required: true },
       date: { type: 'date' },
       tags: { type: 'string[]' },

@@ -2,6 +2,7 @@ import { Body, Controller, HttpCode, Post, UseGuards } from '@nestjs/common';
 import {
   IsBoolean,
   IsDateString,
+  IsEnum,
   IsIn,
   IsInt,
   IsNumber,
@@ -17,9 +18,11 @@ import {
   BillEntity,
   BillFrequency,
 } from '@/modules/finance/entities/bill.entity';
+import { TransactionType } from '@/modules/finance/entities/transaction.entity';
 
 export class BillCreateBodyDto {
   @IsString() description!: string;
+  @IsEnum(TransactionType) type!: TransactionType;
   @IsNumber() @Min(0.01) predictedAmount!: number;
   @IsIn(BILL_FREQUENCIES) frequency!: BillFrequency;
   @IsString() paymentMethodId!: string;

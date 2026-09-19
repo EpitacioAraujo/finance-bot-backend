@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { TransactionType } from '@/modules/finance/entities/transaction.entity';
 import { ReportService } from '@/modules/finance/services/report/report.service';
 import { PayableListUseCase } from '@/modules/finance/use-cases/payable-list/payable-list.use-case';
 
@@ -47,9 +48,9 @@ export class DashboardUseCase {
         from,
         to,
         groupBy: 'payment_method',
-        type: 'expense',
+        type: TransactionType.Expense,
       }),
-      this.payableList.exec({ userId, from, to }),
+      this.payableList.exec({ userId, from, to, type: TransactionType.Expense }),
     ]);
 
     const byPaymentMethod = new Map<string, DashboardLine>();

@@ -3,7 +3,7 @@ import {
   ArrayMaxSize,
   IsArray,
   IsDateString,
-  IsIn,
+  IsEnum,
   IsInt,
   IsNumber,
   IsOptional,
@@ -13,6 +13,7 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { CurrentUser, CurrentUserGuard } from '@/shared/current-user';
+import { TransactionType } from '@/modules/finance/entities/transaction.entity';
 import {
   TransactionCreateUseCase,
   TransactionCreateUseCaseOutput,
@@ -21,7 +22,7 @@ import {
 export class TransactionCreateBodyDto {
   @IsString() description!: string;
   @IsNumber() @Min(0.01) amount!: number;
-  @IsIn(['income', 'expense']) type!: 'income' | 'expense';
+  @IsEnum(TransactionType) type!: TransactionType;
   @ValidateIf((o: TransactionCreateBodyDto) => !o.paymentMethodId) @IsString() paymentMethod?: string;
   @IsOptional() @IsString() paymentMethodId?: string;
   @IsOptional() @IsDateString() date?: string;

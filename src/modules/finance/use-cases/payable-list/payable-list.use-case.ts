@@ -4,16 +4,21 @@ import {
   BillSummary,
 } from '@/modules/finance/services/bill-list/bill-list.service';
 import { ConsolidatedListService } from '@/modules/finance/services/consolidated-list/consolidated-list.service';
+import { TransactionType } from '@/modules/finance/entities/transaction.entity';
 
 export interface PayableListInput {
   userId: string;
   from: string;
   to: string;
   status?: 'paid' | 'pending';
+  /** Omitido, lista a pagar e a receber juntas; o item diz qual é. */
+  type?: TransactionType;
 }
 
 export interface PayableItem {
   kind: 'bill' | 'cycle';
+  /** Fatura é sempre expense; conta carrega o dela. */
+  type: TransactionType;
   /** bill.id ou cycle.id — é o que vai na URL de pay/edit/delete. */
   id: string;
   /** Chave de linha: conta recorrente repete `id` por ocorrência. */
@@ -55,10 +60,14 @@ export class PayableListUseCase {
     from,
     to,
     status,
+    type,
   }: PayableListInput): Promise<PayableListOutput> {
+    // Fatura de cartão é sempre despesa: só fica de fora quando se pede a receber.
     const [bills, cycles] = await Promise.all([
-      this.billList.exec({ userId, from, to, status }),
-      this.consolidatedList.exec({ userId, from, to }),
+      this.billList.exec({ userId, from, to, status, type }),
+      type === TransactionType.Income
+        ? []
+        : this.consolidatedList.exec({ userId, from, to }),
     ]);
 
     // A fatura fechada é o equivalente da conta paga.
@@ -71,6 +80,7 @@ export class PayableListUseCase {
     const items: PayableItem[] = [
       ...bills.items.map((bill) => ({
         kind: 'bill' as const,
+        type: bill.type,
         id: bill.id,
         key: `${bill.id}-${bill.occurrenceDate}`,
         description: bill.description,
@@ -82,6 +92,7 @@ export class PayableListUseCase {
       })),
       ...cycles.map((cycle) => ({
         kind: 'cycle' as const,
+        type: TransactionType.Expense,
         id: cycle.cycleId,
         key: cycle.cycleId,
         description: `Fatura ${cycle.paymentMethod.description}`,

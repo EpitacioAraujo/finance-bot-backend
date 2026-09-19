@@ -4,6 +4,7 @@ import { decimalTransformer } from '@/shared/decimal.transformer';
 import { UserEntity } from './user.entity';
 import { PaymentMethodEntity } from './payment-method.entity';
 import { TagEntity } from './tag.entity';
+import { TransactionType } from './transaction.entity';
 
 export type BillFrequency = 'none' | 'monthly' | 'yearly';
 
@@ -14,9 +15,10 @@ export const BILL_FREQUENCIES: readonly BillFrequency[] = [
 ];
 
 /**
- * Conta a pagar — previsão, não fato consumado. Não tem flag de pago: está paga
- * porque existe transaction com este billId na janela. E a ocorrência recorrente
- * não vira linha: é expandida na leitura a partir de frequency + dueDay.
+ * Conta a pagar ou a receber — previsão, não fato consumado. Não tem flag de
+ * pago: está paga porque existe transaction com este billId na janela. E a
+ * ocorrência recorrente não vira linha: é expandida na leitura a partir de
+ * frequency + dueDay.
  */
 @Entity('bills')
 export class BillEntity extends BaseEntity {
@@ -29,6 +31,10 @@ export class BillEntity extends BaseEntity {
 
   @Column('text')
   description!: string;
+
+  /** expense = a pagar, income = a receber. Vira o `type` da transação que quita. */
+  @Column('varchar', { length: 10 })
+  type!: TransactionType;
 
   @Column('decimal', {
     precision: 15,

@@ -28,7 +28,6 @@ export const env = {
     username: optional('DB_USERNAME', 'root'),
     password: optional('DB_PASSWORD', 'root'),
     database: optional('DB_DATABASE', 'finance'),
-    synchronize: optional('DB_SYNCHRONIZE', 'false') === 'true',
   },
   redis: {
     host: optional('REDIS_HOST', 'localhost'),

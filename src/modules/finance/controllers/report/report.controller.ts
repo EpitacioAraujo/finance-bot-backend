@@ -1,6 +1,7 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
-import { IsDateString, IsIn, IsOptional } from 'class-validator';
+import { IsDateString, IsEnum, IsIn, IsOptional } from 'class-validator';
 import { CurrentUser, CurrentUserGuard } from '@/shared/current-user';
+import { TransactionType } from '@/modules/finance/entities/transaction.entity';
 import {
   ReportOutput,
   ReportService,
@@ -11,7 +12,7 @@ export class ReportQueryDto {
   @IsDateString() to!: string;
   @IsIn(['tag', 'payment_method', 'none'])
   groupBy!: 'tag' | 'payment_method' | 'none';
-  @IsOptional() @IsIn(['income', 'expense']) type?: 'income' | 'expense';
+  @IsOptional() @IsEnum(TransactionType) type?: TransactionType;
 }
 
 @Controller('reports')

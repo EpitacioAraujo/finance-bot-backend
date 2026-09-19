@@ -6,12 +6,14 @@ import {
   BillEntity,
   BillFrequency,
 } from '@/modules/finance/entities/bill.entity';
+import { TransactionType } from '@/modules/finance/entities/transaction.entity';
 import { applyBillSchedule } from '@/modules/finance/rules';
 import { ValidationError } from '@/shared/errors';
 
 export interface BillCreateInput {
   userId: string;
   description: string;
+  type: TransactionType;
   predictedAmount: number;
   frequency: BillFrequency;
   paymentMethodId: string;
@@ -38,6 +40,7 @@ export class BillCreateService {
       id: ulid(),
       userId: input.userId,
       description: input.description.trim(),
+      type: input.type,
       predictedAmount: input.predictedAmount,
       frequency: input.frequency,
       paymentMethodId: input.paymentMethodId,

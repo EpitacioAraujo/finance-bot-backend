@@ -2,12 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { BillEntity } from '@/modules/finance/entities/bill.entity';
-import { TransactionEntity } from '@/modules/finance/entities/transaction.entity';
+import {
+  TransactionEntity,
+  TransactionType,
+} from '@/modules/finance/entities/transaction.entity';
 import { dateAt, parseIso } from '@/shared/date';
 
 export interface BillView {
   id: string;
   description: string;
+  type: TransactionType;
   predictedAmount: number;
   occurrenceDate: string;
   frequency: string;
@@ -39,6 +43,8 @@ export interface BillListInput {
   from: string;
   to: string;
   status?: 'paid' | 'pending';
+  /** Omitido, lista a pagar e a receber juntas. */
+  type?: TransactionType;
 }
 
 /**
@@ -92,9 +98,9 @@ export class BillListService {
     private readonly transactions: Repository<TransactionEntity>,
   ) {}
 
-  async exec({ userId, from, to, status }: BillListInput): Promise<BillListResult> {
+  async exec({ userId, from, to, status, type }: BillListInput): Promise<BillListResult> {
     const bills = await this.bills.find({
-      where: { userId, active: true },
+      where: { userId, active: true, ...(type && { type }) },
       relations: { paymentMethod: true, tag: true },
     });
     if (bills.length === 0) {
@@ -125,6 +131,7 @@ export class BillListService {
         views.push({
           id: bill.id,
           description: bill.description,
+          type: bill.type,
           predictedAmount: bill.predictedAmount,
           occurrenceDate,
           frequency: bill.frequency,

@@ -83,7 +83,7 @@ export class BillPayUseCase {
       userId: input.userId,
       description: bill.description,
       amount: input.amount ?? bill.predictedAmount,
-      type: 'expense',
+      type: bill.type,
       date,
       // A conta já tem os ids; só o override do agente vem como texto.
       ...(input.paymentMethod

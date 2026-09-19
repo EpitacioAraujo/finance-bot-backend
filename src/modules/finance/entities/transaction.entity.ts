@@ -16,12 +16,13 @@ import { PaymentMethodCycleEntity } from './payment-method-cycle.entity';
 import { TagEntity } from './tag.entity';
 import { TransactionSplitEntity } from './transaction-split.entity';
 
-export type TransactionType = 'income' | 'expense';
+export enum TransactionType {
+  Income = 'income',
+  Expense = 'expense',
+}
 
-export const TRANSACTION_TYPES: readonly TransactionType[] = [
-  'income',
-  'expense',
-];
+export const TRANSACTION_TYPES: readonly TransactionType[] =
+  Object.values(TransactionType);
 
 @Entity('transactions')
 @Index(['userId', 'date'])

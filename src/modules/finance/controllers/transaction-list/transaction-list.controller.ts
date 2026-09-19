@@ -1,7 +1,8 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { Type } from 'class-transformer';
-import { IsDateString, IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsDateString, IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { CurrentUser, CurrentUserGuard } from '@/shared/current-user';
+import { TransactionType } from '@/modules/finance/entities/transaction.entity';
 import {
   TransactionListResult,
   TransactionListService,
@@ -10,7 +11,7 @@ import {
 export class TransactionListQueryDto {
   @IsOptional() @IsDateString() from?: string;
   @IsOptional() @IsDateString() to?: string;
-  @IsOptional() @IsIn(['income', 'expense']) type?: 'income' | 'expense';
+  @IsOptional() @IsEnum(TransactionType) type?: TransactionType;
   @IsOptional() @IsString() tagId?: string;
   @IsOptional() @IsString() paymentMethodId?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(200) limit?: number;

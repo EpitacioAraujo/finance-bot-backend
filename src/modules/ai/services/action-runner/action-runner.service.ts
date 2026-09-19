@@ -7,6 +7,7 @@ import {
 } from '@/modules/ai/catalog/actions';
 import { AmbiguousError, DomainError, ValidationError } from '@/shared/errors';
 import { BillFrequency } from '@/modules/finance/entities/bill.entity';
+import { TransactionType } from '@/modules/finance/entities/transaction.entity';
 
 import { PaymentMethodListService } from '@/modules/finance/services/payment-method-list/payment-method-list.service';
 import { PaymentMethodCreateService } from '@/modules/finance/services/payment-method-create/payment-method-create.service';
@@ -95,7 +96,7 @@ export class ActionRunnerService {
           userId,
           from: p.from as string,
           to: p.to as string,
-          type: p.type as 'income' | 'expense' | undefined,
+          type: p.type as TransactionType | undefined,
           tagId: tag?.id,
           limit: (p.limit as number | undefined) ?? 50,
         });
@@ -115,7 +116,7 @@ export class ActionRunnerService {
           from: p.from as string,
           to: p.to as string,
           groupBy: p.groupBy as 'tag' | 'payment_method' | 'none',
-          type: p.type as 'income' | 'expense' | undefined,
+          type: p.type as TransactionType | undefined,
         }),
       list_consolidated: (userId, p) =>
         this.consolidatedList.exec({
@@ -129,7 +130,7 @@ export class ActionRunnerService {
           userId,
           description: p.description as string,
           amount: p.amount as number,
-          type: p.type as 'income' | 'expense',
+          type: p.type as TransactionType,
           paymentMethod: p.paymentMethod as string,
           date: p.date as string | undefined,
           tags: p.tags as string[] | undefined,
@@ -184,8 +185,10 @@ export class ActionRunnerService {
         const [tag] = p.tag
           ? await this.tagResolve.exec({ userId, texts: [p.tag as string] })
           : [];
+        // O agente só cadastra conta a pagar; receber ainda não está no catálogo.
         return this.billCreate.exec({
           userId,
+          type: TransactionType.Expense,
           description: p.description as string,
           predictedAmount: p.predictedAmount as number,
           frequency: p.frequency as BillFrequency,

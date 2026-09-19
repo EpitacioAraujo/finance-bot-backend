@@ -9,7 +9,8 @@ export const dataSourceOptions: DataSourceOptions = {
   username: env.db.username,
   password: env.db.password,
   database: env.db.database,
-  synchronize: env.db.synchronize,
+  // Estrutura só muda por migration; as pendentes rodam ao conectar.
+  migrationsRun: true,
   namingStrategy: new SnakeNamingStrategy(),
   entities: [__dirname + '/../modules/**/entities/*.entity.{ts,js}'],
   migrations: [__dirname + '/migrations/*.{ts,js}'],
