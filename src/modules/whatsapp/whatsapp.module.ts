@@ -38,6 +38,8 @@ import {
     InboundResolveUseCase,
     InboundWorker,
   ],
-  exports: [WhatsappSendService],
+  // TranscribeService não tem nada de WhatsApp: recebe áudio, devolve texto.
+  // Sai daqui porque mover para `ai` criaria ciclo — `whatsapp` também usa.
+  exports: [WhatsappSendService, TranscribeService],
 })
 export class WhatsappModule {}

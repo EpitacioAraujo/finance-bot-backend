@@ -46,6 +46,14 @@ export const env = {
     apiKey: required('DEEPSEEK_API_KEY'),
     model: optional('DEEPSEEK_MODEL', 'deepseek-chat'),
   },
+  openAi: {
+    apiKey: required('OPENAI_API_KEY'),
+    // A família tts-1 não aceita `instructions`, então não tem sotaque.
+    ttsModel: optional('OPENAI_TTS_MODEL', 'gpt-4o-mini-tts'),
+    ttsVoice: optional('OPENAI_TTS_VOICE', 'echo'),
+    ttsSpeed: number('OPENAI_TTS_SPEED', 1.2),
+    ttsInstructions: optional('OPENAI_TTS_INSTRUCTIONS', 'Fale português brasileiro com sotaque nordestino do Ceará, como alguém de Fortaleza conversando: vogais abertas, "s" chiado no fim das sílabas e cadência cantada. Fale rápido, num fluxo contínuo, sem pausar entre as frases e sem arrastar os números. Tom casual e direto.'),
+  },
   interpret: {
     debounceMs: number('INTERPRET_DEBOUNCE_MS', 8000),
   },
