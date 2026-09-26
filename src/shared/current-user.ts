@@ -30,10 +30,25 @@ export class CurrentUserGuard implements CanActivate {
     const user = await this.users.findOne({ where: { id: userId, active: true } });
     if (!user) throw new UnauthorizedException('Usuário desconhecido');
 
-    (request as Request & { userId?: string }).userId = user.id;
+    const scoped = request as Request & {
+      userId?: string;
+      currentUser?: UserEntity;
+    };
+    scoped.userId = user.id;
+    scoped.currentUser = user;
     return true;
   }
 }
+
+/** A entidade que o guard já carregou. Evita buscar o mesmo usuário de novo. */
+export const CurrentUserEntity = createParamDecorator(
+  (_data: unknown, context: ExecutionContext): UserEntity => {
+    const request = context
+      .switchToHttp()
+      .getRequest<Request & { currentUser?: UserEntity }>();
+    return request.currentUser!;
+  },
+);
 
 export const CurrentUser = createParamDecorator(
   (_data: unknown, context: ExecutionContext): string => {

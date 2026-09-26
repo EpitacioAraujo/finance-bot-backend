@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { env } from '@/config/env';
+import { ValidationError } from '@/shared/errors';
 
 /** Teto do `tts-1`. A resposta do agente é curta; isto é só para não estourar. */
 const MAX_CHARS = 4096;
@@ -8,6 +9,10 @@ const MAX_CHARS = 4096;
 @Injectable()
 export class SpeakService {
   async exec({ text }: { text: string }): Promise<Buffer> {
+    if (!env.openAi.apiKey) {
+      throw new ValidationError('Voz não configurada: falta OPENAI_API_KEY');
+    }
+
     const response = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
       headers: {

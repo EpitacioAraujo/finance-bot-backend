@@ -1,15 +1,15 @@
-import { Injectable } from '@nestjs/common';
-import { UserResolveService } from '@/modules/finance/services/user-resolve/user-resolve.service';
+import { Injectable, Logger } from '@nestjs/common';
+import { UserEntity } from '@/modules/finance/entities/user.entity';
 import { TranscribeService } from '@/modules/whatsapp/services/transcribe/transcribe.service';
 import { SpeakService } from '@/modules/ai/services/speak/speak.service';
 import { AgentReplyUseCase } from '@/modules/ai/use-cases/agent-reply/agent-reply.use-case';
-import { NotFoundError, ValidationError } from '@/shared/errors';
+import { ValidationError } from '@/shared/errors';
 
 export interface ChatSendOutput {
   /** O que foi entendido do áudio — a tela mostra para o usuário conferir. */
   transcript: string;
   reply: string;
-  /** mp3 em base64. Evita uma segunda rota e um lugar para guardar arquivo. */
+  /** mp3 em base64; vazio se a voz falhou. Evita uma segunda rota e storage. */
   audio: string;
 }
 
@@ -20,23 +20,21 @@ export interface ChatSendOutput {
  */
 @Injectable()
 export class ChatSendUseCase {
+  private readonly logger = new Logger(ChatSendUseCase.name);
+
   constructor(
-    private readonly userResolve: UserResolveService,
     private readonly transcribe: TranscribeService,
     private readonly agentReply: AgentReplyUseCase,
     private readonly speak: SpeakService,
   ) {}
 
   async exec({
-    userId,
+    user,
     audio,
   }: {
-    userId: string;
+    user: UserEntity;
     audio: Buffer;
   }): Promise<ChatSendOutput> {
-    const user = await this.userResolve.exec({ id: userId });
-    if (!user) throw new NotFoundError('Usuário não encontrado');
-
     // O Buffer do multer é uma fatia de um pool compartilhado do Node; a cópia
     // é o que garante que só os bytes deste áudio sobem.
     const transcript = await this.transcribe.exec({
@@ -51,10 +49,18 @@ export class ChatSendUseCase {
       incoming: [transcript],
     });
 
-    return {
-      transcript,
-      reply,
-      audio: (await this.speak.exec({ text: reply })).toString('base64'),
-    };
+    // A partir daqui o agente já gravou. Deixar a voz estourar viraria 500, o
+    // usuário repetiria a fala e a escrita aconteceria duas vezes — e a rota
+    // não tem chave de idempotência. Sem voz, o texto ainda responde.
+    let spoken = '';
+    try {
+      spoken = (await this.speak.exec({ text: reply })).toString('base64');
+    } catch (error) {
+      this.logger.warn(
+        `Voz falhou, respondendo só em texto: ${(error as Error).message}`,
+      );
+    }
+
+    return { transcript, reply, audio: spoken };
   }
 }

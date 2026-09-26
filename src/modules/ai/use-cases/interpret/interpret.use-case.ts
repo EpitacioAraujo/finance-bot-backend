@@ -29,8 +29,12 @@ export class InterpretUseCase {
   async exec({ phone }: { phone: string }): Promise<void> {
     const key = `pending:${phone}`;
     const ids = await this.redis.lrange(key, 0, -1);
-    await this.redis.del(key);
     if (ids.length === 0) return;
+
+    // `ltrim` só do que foi lido, e só no fim: apagar a lista antes de o agente
+    // rodar fazia a tentativa seguinte do BullMQ achar a fila vazia e desistir
+    // em silêncio. Mensagem que chegar durante a rodada fica para a próxima.
+    const consume = (): Promise<unknown> => this.redis.ltrim(key, ids.length, -1);
 
     const messages = await this.rawMessages.find({ where: { id: In(ids) } });
     const pending = messages.filter((message) => !message.processedAt);
@@ -38,6 +42,7 @@ export class InterpretUseCase {
     // Job reprocessado depois de já ter gravado: reenvia o que ficou guardado
     // em vez de chamar o LLM e criar tudo de novo.
     if (pending.length === 0) {
+      await consume();
       const previous = messages.at(-1)?.replyText;
       if (previous) await this.send.exec({ to: phone, text: previous });
       return;
@@ -45,6 +50,7 @@ export class InterpretUseCase {
 
     const user = await this.userResolve.exec({ phone });
     if (!user) {
+      await consume();
       this.logger.warn(`Telefone ${phone} não pertence a nenhum usuário`);
       return;
     }
@@ -62,6 +68,7 @@ export class InterpretUseCase {
       message.replyText = reply;
     }
     await this.rawMessages.save(pending);
+    await consume();
 
     await this.send.exec({ to: phone, text: reply });
   }

@@ -6,7 +6,8 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { CurrentUser, CurrentUserGuard } from '@/shared/current-user';
+import { CurrentUserEntity, CurrentUserGuard } from '@/shared/current-user';
+import { UserEntity } from '@/modules/finance/entities/user.entity';
 import {
   ChatSendOutput,
   ChatSendUseCase,
@@ -24,7 +25,7 @@ export class ChatSendController {
   @Post()
   @UseInterceptors(FileInterceptor('audio', { limits: { fileSize: MAX_BYTES } }))
   async exec(
-    @CurrentUser() userId: string,
+    @CurrentUserEntity() user: UserEntity,
     @UploadedFile() file?: Express.Multer.File,
   ): Promise<ChatSendOutput> {
     if (!file) throw new ValidationError('Nenhum áudio recebido');
@@ -34,6 +35,6 @@ export class ChatSendController {
       throw new ValidationError(`Formato não suportado: ${file.mimetype}`);
     }
 
-    return this.useCase.exec({ userId, audio: file.buffer });
+    return this.useCase.exec({ user, audio: file.buffer });
   }
 }

@@ -22,7 +22,7 @@ export interface PromptMessage {
 
 const rules = (context: PromptContext): string =>
   [
-    'Você é o assistente financeiro de um usuário no WhatsApp. Você NÃO executa nada:',
+    'Você é o assistente financeiro de um usuário. Você NÃO executa nada:',
     'você devolve um plano em JSON e o sistema executa o que for permitido.',
     '',
     `Agora são ${stamp(context.now, context.timezone)} de ${context.today} (fuso ${context.timezone}).`,

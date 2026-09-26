@@ -6,8 +6,10 @@ const required = (key: string): string => {
   return value;
 };
 
+// `||` e não `??`: `VAR=` no .env é ausência, não escolha. Com `??`, copiar o
+// .env.example apagaria todo default — foi o que aconteceu com o sotaque.
 const optional = (key: string, fallback: string): string =>
-  process.env[key] ?? fallback;
+  process.env[key] || fallback;
 
 const number = (key: string, fallback: number): number => {
   const raw = process.env[key];
@@ -47,8 +49,7 @@ export const env = {
     model: optional('DEEPSEEK_MODEL', 'deepseek-chat'),
   },
   openAi: {
-    apiKey: required('OPENAI_API_KEY'),
-    // A família tts-1 não aceita `instructions`, então não tem sotaque.
+    apiKey: optional('OPENAI_API_KEY', ''),
     ttsModel: optional('OPENAI_TTS_MODEL', 'gpt-4o-mini-tts'),
     ttsVoice: optional('OPENAI_TTS_VOICE', 'echo'),
     ttsSpeed: number('OPENAI_TTS_SPEED', 1.2),

@@ -125,6 +125,10 @@ export class AgentReplyUseCase {
       } else {
         reply = plan.reply;
       }
+
+      // O plano só garante que `reply` é string. Vazia, viraria mensagem em
+      // branco no WhatsApp e 400 na síntese de voz.
+      if (!reply.trim()) reply = FALLBACK_REPLY;
     } catch (error) {
       // Plano malformado ou ação fora do catálogo: nada foi executado pela
       // metade. O resto sobe e quem chamou decide se tenta de novo.
