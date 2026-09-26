@@ -5,6 +5,9 @@ export interface ConsolidatedView {
   cycleId: string;
   paymentMethod: { id: string; description: string };
   referenceMonth: string;
+  /** Janela de compras da fatura: o que ela cobra. */
+  startDate: string;
+  endDate: string;
   dueDate: string;
   total: number;
   itemCount: number;
@@ -30,6 +33,8 @@ export class ConsolidatedListService {
         description: row.payment_method_description,
       },
       referenceMonth: row.reference_month,
+      startDate: row.start_date,
+      endDate: row.end_date,
       dueDate: row.due_date,
       total: Number(row.total),
       itemCount: Number(row.item_count),

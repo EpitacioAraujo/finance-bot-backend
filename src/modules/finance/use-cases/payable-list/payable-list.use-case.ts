@@ -34,6 +34,8 @@ export interface PayableItem {
   paymentMethod: { id: string; description: string };
   /** Só cycle: compras na fatura. */
   itemCount: number | null;
+  /** Só cycle: a janela que a fatura cobra — o vencimento sozinho não diz. */
+  period: { startDate: string; endDate: string } | null;
 }
 
 export interface PayableListOutput {
@@ -89,6 +91,7 @@ export class PayableListUseCase {
         status: bill.paid ? ('paid' as const) : ('pending' as const),
         paymentMethod: bill.paymentMethod,
         itemCount: null,
+        period: null,
       })),
       ...cycles.map((cycle) => ({
         kind: 'cycle' as const,
@@ -101,6 +104,7 @@ export class PayableListUseCase {
         status: cycle.closedAt ? ('paid' as const) : ('pending' as const),
         paymentMethod: cycle.paymentMethod,
         itemCount: cycle.itemCount,
+        period: { startDate: cycle.startDate, endDate: cycle.endDate },
       })),
     ];
 

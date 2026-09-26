@@ -5,6 +5,8 @@ import { DataSource } from 'typeorm';
 export interface ConsolidatedRow {
   cycle_id: string;
   reference_month: string;
+  start_date: string;
+  end_date: string;
   due_date: string;
   closed_at: Date | null;
   payment_method_id: string;
@@ -33,6 +35,8 @@ export class ConsolidatedRepository {
       `
       SELECT c.id                AS cycle_id,
              c.reference_month   AS reference_month,
+             c.start_date::text  AS start_date,
+             c.end_date::text    AS end_date,
              c.due_date::text    AS due_date,
              c.closed_at         AS closed_at,
              pm.id               AS payment_method_id,
@@ -47,7 +51,7 @@ export class ConsolidatedRepository {
          AND c.deleted_at IS NULL
          AND ($4::varchar IS NULL OR c.id = $4)
          AND c.due_date BETWEEN $2 AND $3
-       GROUP BY c.id, c.reference_month, c.due_date, c.closed_at, pm.id, pm.description
+       GROUP BY c.id, c.reference_month, c.start_date, c.end_date, c.due_date, c.closed_at, pm.id, pm.description
        ORDER BY c.due_date ASC
       `,
       [input.userId, input.from, input.to, input.cycleId ?? null],
