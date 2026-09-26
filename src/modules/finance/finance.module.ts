@@ -35,15 +35,15 @@ import { BillListService } from './services/bill-list/bill-list.service';
 import { BillGetService } from './services/bill-get/bill-get.service';
 import { PaymentMethodGetService } from './services/payment-method-get/payment-method-get.service';
 import { TagGetService } from './services/tag-get/tag-get.service';
-import { ConsolidatedItemsService } from './services/consolidated-items/consolidated-items.service';
 import { PayableListUseCase } from './use-cases/payable-list/payable-list.use-case';
 import { DashboardUseCase } from './use-cases/dashboard/dashboard.use-case';
 import { BillUpdateService } from './services/bill-update/bill-update.service';
 import { BillDeleteService } from './services/bill-delete/bill-delete.service';
 import { ReportService } from './services/report/report.service';
 import { ConsolidatedListUseCase } from './use-cases/consolidated-list/consolidated-list.use-case';
-import { ConsolidatedItemsUseCase } from './use-cases/consolidated-items/consolidated-items.use-case';
 import { ConsolidatedPayService } from './services/consolidated-pay/consolidated-pay.service';
+import { CycleGetService } from './services/cycle-get/cycle-get.service';
+import { ConsolidatedPayUseCase } from './use-cases/consolidated-pay/consolidated-pay.use-case';
 
 import { ReportRepository } from './repositories/report/report.repository';
 import { ConsolidatedRepository } from './repositories/consolidated/consolidated.repository';
@@ -68,7 +68,6 @@ import { BillListController } from './controllers/bill-list/bill-list.controller
 import { BillGetController } from './controllers/bill-get/bill-get.controller';
 import { PaymentMethodGetController } from './controllers/payment-method-get/payment-method-get.controller';
 import { TagGetController } from './controllers/tag-get/tag-get.controller';
-import { ConsolidatedItemsController } from './controllers/consolidated-items/consolidated-items.controller';
 import { PayableListController } from './controllers/payable-list/payable-list.controller';
 import { DashboardController } from './controllers/dashboard/dashboard.controller';
 import { BillCreateController } from './controllers/bill-create/bill-create.controller';
@@ -110,8 +109,6 @@ const providers = [
   BillGetService,
   PaymentMethodGetService,
   TagGetService,
-  ConsolidatedItemsService,
-  ConsolidatedItemsUseCase,
   PayableListUseCase,
   DashboardUseCase,
   BillUpdateService,
@@ -119,6 +116,8 @@ const providers = [
   ReportService,
   ConsolidatedListUseCase,
   ConsolidatedPayService,
+  ConsolidatedPayUseCase,
+  CycleGetService,
   ReportRepository,
   ConsolidatedRepository,
   TransactionCreateUseCase,
@@ -160,7 +159,6 @@ const providers = [
     BillGetController,
     PaymentMethodGetController,
     TagGetController,
-    ConsolidatedItemsController,
     PayableListController,
     DashboardController,
     BillCreateController,

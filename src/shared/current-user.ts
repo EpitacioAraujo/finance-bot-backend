@@ -27,7 +27,9 @@ export class CurrentUserGuard implements CanActivate {
     const userId = request.header('x-user-id');
     if (!userId) throw new UnauthorizedException('x-user-id ausente');
 
-    const user = await this.users.findOne({ where: { id: userId, active: true } });
+    const user = await this.users.findOne({
+      where: { id: userId, active: true },
+    });
     if (!user) throw new UnauthorizedException('Usuário desconhecido');
 
     const scoped = request as Request & {
@@ -46,7 +48,10 @@ export const CurrentUserEntity = createParamDecorator(
     const request = context
       .switchToHttp()
       .getRequest<Request & { currentUser?: UserEntity }>();
-    return request.currentUser!;
+    // Sem guard na rota o campo não existe: recusar aqui é 401, e não um 500
+    // no primeiro `user.id` lá adiante.
+    if (!request.currentUser) throw new UnauthorizedException('Sem usuário');
+    return request.currentUser;
   },
 );
 

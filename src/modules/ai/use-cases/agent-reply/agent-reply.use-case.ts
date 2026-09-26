@@ -130,10 +130,18 @@ export class AgentReplyUseCase {
       // branco no WhatsApp e 400 na síntese de voz.
       if (!reply.trim()) reply = FALLBACK_REPLY;
     } catch (error) {
-      // Plano malformado ou ação fora do catálogo: nada foi executado pela
-      // metade. O resto sobe e quem chamou decide se tenta de novo.
-      if (!(error instanceof DomainError)) throw error;
-      this.logger.warn(`Plano recusado: ${error.message}`);
+      // Daqui não sobe nada, de propósito. Uma ação pode já ter gravado quando
+      // o erro acontece: deixar subir faz o BullMQ repetir o plano inteiro e
+      // gravar de novo, e na web vira 500 — o usuário repete a fala e dá no
+      // mesmo. O turno termina com o fallback e ele manda de novo se quiser.
+      if (error instanceof DomainError) {
+        this.logger.warn(`Plano recusado: ${error.message}`);
+      } else {
+        this.logger.error(
+          `Falha no plano de ${user.id}: ${(error as Error).message}`,
+          (error as Error).stack,
+        );
+      }
     }
 
     await this.conversationSave.exec({

@@ -6,6 +6,17 @@ import { cycleOf } from '@/modules/finance/services/cycle-resolve/cycle-resolve.
 import { TransactionType } from '@/modules/finance/entities/transaction.entity';
 import { addMonths } from '@/shared/date';
 
+/** Uma conta recorrente que cai nesta fatura. Quem paga é a fatura, não ela. */
+export interface ConsolidatedLine {
+  billId: string;
+  key: string;
+  description: string;
+  /** Dia em que a cobrança cai no cartão. */
+  date: string;
+  amount: number;
+  status: 'paid' | 'pending';
+}
+
 export interface ConsolidatedView {
   /** Null quando a fatura ainda não existe no banco: o cartão só tem previsão. */
   cycleId: string | null;
@@ -18,6 +29,8 @@ export interface ConsolidatedView {
   total: number;
   itemCount: number;
   closedAt: Date | null;
+  /** As contas que caem nesta fatura. Só as pendentes entram no `total`. */
+  items: ConsolidatedLine[];
 }
 
 export interface ConsolidatedListInput {
@@ -38,6 +51,10 @@ export interface ConsolidatedListInput {
  *
  * Cartão sem nenhuma compra não tem ciclo no banco. Nesse caso a fatura sai
  * daqui **virtual**, com `cycleId` nulo: aparece, mas não há o que fechar.
+ *
+ * `items` lista as contas que caem na fatura, pagas e pendentes — mas só as
+ * pendentes somam no total. Uma conta paga já virou compra, e a compra já está
+ * lá dentro: contar de novo dobraria o valor.
  */
 @Injectable()
 export class ConsolidatedListUseCase {
@@ -66,6 +83,7 @@ export class ConsolidatedListUseCase {
       total: Number(row.total),
       itemCount: Number(row.item_count),
       closedAt: row.closed_at,
+      items: [],
     }));
 
     const credit = new Map(
@@ -73,6 +91,7 @@ export class ConsolidatedListUseCase {
         .filter((method) => cycleOf(method, input.from) !== null)
         .map((method) => [method.id, method]),
     );
+
     // Uma cobrança de hoje pode cair numa fatura que só vence dois meses
     // depois, então a janela das contas é maior que a das faturas.
     const bills = credit.size
@@ -82,7 +101,6 @@ export class ConsolidatedListUseCase {
             from: addMonths(input.from, -2),
             to: input.to,
             type: TransactionType.Expense,
-            status: 'pending',
           })
         ).items
       : [];
@@ -104,11 +122,26 @@ export class ConsolidatedListUseCase {
       // Fatura fechada não recebe previsão: o que foi cobrado é o que foi.
       if (existing?.closedAt) continue;
 
+      const line: ConsolidatedLine = {
+        billId: bill.id,
+        key: `${bill.id}-${bill.occurrenceDate}`,
+        description: bill.description,
+        date: bill.occurrenceDate,
+        amount: bill.predictedAmount,
+        status: bill.paid ? 'paid' : 'pending',
+      };
+
       if (existing) {
-        existing.total += bill.predictedAmount;
-        existing.itemCount += 1;
+        if (!bill.paid) {
+          existing.total += bill.predictedAmount;
+          existing.itemCount += 1;
+        }
+        existing.items.push(line);
         continue;
       }
+
+      // Conta já paga não abre fatura sozinha: a compra dela é que faz isso.
+      if (bill.paid) continue;
 
       // Pedir uma fatura por id é pedir uma que existe; não se inventa virtual.
       if (input.cycleId) continue;
@@ -123,12 +156,17 @@ export class ConsolidatedListUseCase {
         total: bill.predictedAmount,
         itemCount: 1,
         closedAt: null,
+        items: [line],
       });
     }
 
     // Fatura sem nada dentro não é fatura. Ciclo nasce na primeira compra e
     // sobrevive a ela ser apagada, então sobra vazio pelo caminho. O filtro vem
     // depois das previsões: fatura que só tem conta prevista continua de pé.
+    for (const view of views) {
+      view.items.sort((a, b) => a.date.localeCompare(b.date));
+    }
+
     return views
       .filter((view) => view.itemCount > 0)
       .sort((a, b) => a.dueDate.localeCompare(b.dueDate));

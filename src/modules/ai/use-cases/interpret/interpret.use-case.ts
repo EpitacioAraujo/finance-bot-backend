@@ -31,20 +31,27 @@ export class InterpretUseCase {
     const ids = await this.redis.lrange(key, 0, -1);
     if (ids.length === 0) return;
 
-    // `ltrim` só do que foi lido, e só no fim: apagar a lista antes de o agente
-    // rodar fazia a tentativa seguinte do BullMQ achar a fila vazia e desistir
-    // em silêncio. Mensagem que chegar durante a rodada fica para a próxima.
-    const consume = (): Promise<unknown> => this.redis.ltrim(key, ids.length, -1);
+    // `ltrim` só do que foi lido, e só depois de a resposta sair: apagar antes
+    // fazia a tentativa seguinte do BullMQ achar a fila vazia e desistir em
+    // silêncio, inclusive quando o que falhou foi o envio. Mensagem que chegar
+    // durante a rodada fica para a próxima.
+    const consume = (): Promise<unknown> =>
+      this.redis.ltrim(key, ids.length, -1);
 
-    const messages = await this.rawMessages.find({ where: { id: In(ids) } });
+    // Ordenado: o reenvio pega a última resposta, e `find` sem `order` devolve
+    // o que o plano do Postgres quiser.
+    const messages = await this.rawMessages.find({
+      where: { id: In(ids) },
+      order: { createdAt: 'ASC' },
+    });
     const pending = messages.filter((message) => !message.processedAt);
 
     // Job reprocessado depois de já ter gravado: reenvia o que ficou guardado
     // em vez de chamar o LLM e criar tudo de novo.
     if (pending.length === 0) {
-      await consume();
       const previous = messages.at(-1)?.replyText;
       if (previous) await this.send.exec({ to: phone, text: previous });
+      await consume();
       return;
     }
 
@@ -68,8 +75,8 @@ export class InterpretUseCase {
       message.replyText = reply;
     }
     await this.rawMessages.save(pending);
-    await consume();
 
     await this.send.exec({ to: phone, text: reply });
+    await consume();
   }
 }

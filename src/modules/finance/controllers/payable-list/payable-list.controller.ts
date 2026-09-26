@@ -10,8 +10,12 @@ import {
 export class PayableListQueryDto {
   @IsDateString() from!: string;
   @IsDateString() to!: string;
-  @IsOptional() @IsIn(['paid', 'pending']) status?: 'paid' | 'pending';
   @IsOptional() @IsEnum(TransactionType) type?: TransactionType;
+  /**
+   * Não faz mais nada: cada linha mostra o próprio estado. Continua aceito
+   * porque `forbidNonWhitelisted` devolveria 400 a um bundle antigo.
+   */
+  @IsOptional() @IsIn(['paid', 'pending']) status?: 'paid' | 'pending';
 }
 
 @Controller('payables')

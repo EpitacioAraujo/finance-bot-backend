@@ -22,7 +22,7 @@ import { BillCreateService } from '@/modules/finance/services/bill-create/bill-c
 import { PaymentMethodResolveService } from '@/modules/finance/services/payment-method-resolve/payment-method-resolve.service';
 import { ReportService } from '@/modules/finance/services/report/report.service';
 import { ConsolidatedListUseCase } from '@/modules/finance/use-cases/consolidated-list/consolidated-list.use-case';
-import { ConsolidatedPayService } from '@/modules/finance/services/consolidated-pay/consolidated-pay.service';
+import { ConsolidatedPayUseCase } from '@/modules/finance/use-cases/consolidated-pay/consolidated-pay.use-case';
 import { TransactionCreateUseCase } from '@/modules/finance/use-cases/transaction-create/transaction-create.use-case';
 import { TransactionUpdateUseCase } from '@/modules/finance/use-cases/transaction-update/transaction-update.use-case';
 import { BillPayUseCase } from '@/modules/finance/use-cases/bill-pay/bill-pay.use-case';
@@ -80,7 +80,7 @@ export class ActionRunnerService {
     private readonly paymentMethodResolve: PaymentMethodResolveService,
     private readonly report: ReportService,
     private readonly consolidatedList: ConsolidatedListUseCase,
-    private readonly consolidatedPay: ConsolidatedPayService,
+    private readonly consolidatedPay: ConsolidatedPayUseCase,
     private readonly transactionCreate: TransactionCreateUseCase,
     private readonly transactionUpdate: TransactionUpdateUseCase,
     private readonly billPay: BillPayUseCase,
@@ -157,7 +157,8 @@ export class ActionRunnerService {
         const target = p.number
           ? tranches.find((tranche) => tranche.number === p.number)
           : tranches.find((tranche) => !tranche.paidAt);
-        if (!target) throw new ValidationError('Não achei essa parcela em aberto');
+        if (!target)
+          throw new ValidationError('Não achei essa parcela em aberto');
         return this.tranchePay.exec({ userId, trancheId: target.id });
       },
       pay_bill: (userId, p) =>
@@ -204,7 +205,12 @@ export class ActionRunnerService {
     };
   }
 
-  async exec({ userId, items, expect, knownIds }: Input): Promise<ActionResult[]> {
+  async exec({
+    userId,
+    items,
+    expect,
+    knownIds,
+  }: Input): Promise<ActionResult[]> {
     if (items.length > MAX_ITEMS) {
       throw new ValidationError(`O plano passou de ${MAX_ITEMS} ações`);
     }

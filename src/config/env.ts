@@ -2,14 +2,13 @@ import 'dotenv/config';
 
 const required = (key: string): string => {
   const value = process.env[key];
-  if (!value) throw new Error(`Variável de ambiente obrigatória ausente: ${key}`);
+  if (!value)
+    throw new Error(`Variável de ambiente obrigatória ausente: ${key}`);
   return value;
 };
 
-// `||` e não `??`: `VAR=` no .env é ausência, não escolha. Com `??`, copiar o
-// .env.example apagaria todo default — foi o que aconteceu com o sotaque.
 const optional = (key: string, fallback: string): string =>
-  process.env[key] || fallback;
+  process.env[key] ?? fallback;
 
 const number = (key: string, fallback: number): number => {
   const raw = process.env[key];
@@ -53,7 +52,10 @@ export const env = {
     ttsModel: optional('OPENAI_TTS_MODEL', 'gpt-4o-mini-tts'),
     ttsVoice: optional('OPENAI_TTS_VOICE', 'echo'),
     ttsSpeed: number('OPENAI_TTS_SPEED', 1.2),
-    ttsInstructions: optional('OPENAI_TTS_INSTRUCTIONS', 'Fale português brasileiro com sotaque nordestino do Ceará, como alguém de Fortaleza conversando: vogais abertas, "s" chiado no fim das sílabas e cadência cantada. Fale rápido, num fluxo contínuo, sem pausar entre as frases e sem arrastar os números. Tom casual e direto.'),
+    ttsInstructions: optional(
+      'OPENAI_TTS_INSTRUCTIONS',
+      'Fale português brasileiro com sotaque nordestino do Ceará, como alguém de Fortaleza conversando: vogais abertas, "s" chiado no fim das sílabas e cadência cantada. Fale rápido, num fluxo contínuo, sem pausar entre as frases e sem arrastar os números. Tom casual e direto.',
+    ),
   },
   interpret: {
     debounceMs: number('INTERPRET_DEBOUNCE_MS', 8000),

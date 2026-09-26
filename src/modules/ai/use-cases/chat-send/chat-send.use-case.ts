@@ -56,8 +56,9 @@ export class ChatSendUseCase {
     try {
       spoken = (await this.speak.exec({ text: reply })).toString('base64');
     } catch (error) {
-      this.logger.warn(
+      this.logger.error(
         `Voz falhou, respondendo só em texto: ${(error as Error).message}`,
+        (error as Error).stack,
       );
     }
 
