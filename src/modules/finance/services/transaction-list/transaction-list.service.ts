@@ -5,7 +5,7 @@ import {
   TransactionEntity,
   TransactionType,
 } from '@/modules/finance/entities/transaction.entity';
-import { TransactionSplitEntity } from '@/modules/finance/entities/transaction-split.entity';
+import { TransactionTrancheEntity } from '@/modules/finance/entities/transaction-tranche.entity';
 
 export interface TransactionListInput {
   userId: string;
@@ -19,16 +19,19 @@ export interface TransactionListInput {
 }
 
 export type TransactionView = TransactionEntity & {
-  /** Sempre carregado, ordenado por `number`. */
-  splits: TransactionSplitEntity[];
-  paidInstallments: number;
+  /** Sempre carregado e nunca vazio, ordenado por `number`. */
+  tranches: TransactionTrancheEntity[];
+  /** Deixou de ser coluna: é quantas tranches a compra tem. */
+  installments: number;
+  paidTranches: number;
 };
 
 /** Get e list entregam a mesma leitura: a contagem sai daqui, não da tela. */
 export const toTransactionView = (t: TransactionEntity): TransactionView => ({
   ...t,
-  splits: t.splits ?? [],
-  paidInstallments: (t.splits ?? []).filter((s) => s.paidAt).length,
+  tranches: t.tranches ?? [],
+  installments: (t.tranches ?? []).length,
+  paidTranches: (t.tranches ?? []).filter((tranche) => tranche.paidAt).length,
 });
 
 export interface TransactionListResult {
@@ -56,8 +59,8 @@ export class TransactionListService {
           : {}),
         ...(input.tagId ? { tags: { id: input.tagId } } : {}),
       },
-      relations: { paymentMethod: true, tags: true, splits: true },
-      order: { date: 'DESC', createdAt: 'DESC', splits: { number: 'ASC' } },
+      relations: { paymentMethod: true, tags: true, tranches: true },
+      order: { date: 'DESC', createdAt: 'DESC', tranches: { number: 'ASC' } },
       take: input.limit ?? 100,
       skip: input.offset ?? 0,
     });

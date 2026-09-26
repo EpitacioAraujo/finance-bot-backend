@@ -4,14 +4,22 @@ import { decimalTransformer } from '@/shared/decimal.transformer';
 import { PaymentMethodCycleEntity } from './payment-method-cycle.entity';
 import { TransactionEntity } from './transaction.entity';
 
-/** Só existe quando installments > 1. Compra à vista não gera linha. */
-@Entity('transaction_splits')
-@Index(['transactionId', 'number'], { unique: true })
-export class TransactionSplitEntity extends BaseEntity {
+/**
+ * A linha de pagamento: uma fatia da compra com valor, vencimento e estado de
+ * pago. Existe sempre — à vista é uma tranche de número 1, não uma exceção. É
+ * aqui que mora o "quando o dinheiro sai"; a transação guarda o "quando comprei".
+ */
+// Índices nomeados à mão: a migration renomeia os do tempo de `transaction_splits`
+// e o hash que o TypeORM geraria não bate mais com o que está no banco.
+@Entity('transaction_tranches')
+@Index('IDX_transaction_tranches_transaction_number', ['transactionId', 'number'], {
+  unique: true,
+})
+export class TransactionTrancheEntity extends BaseEntity {
   @Column('varchar', { length: 26 })
   transactionId!: string;
 
-  @ManyToOne(() => TransactionEntity, (transaction) => transaction.splits)
+  @ManyToOne(() => TransactionEntity, (transaction) => transaction.tranches)
   @JoinColumn({ name: 'transaction_id' })
   transaction?: TransactionEntity;
 
@@ -19,7 +27,7 @@ export class TransactionSplitEntity extends BaseEntity {
   @Column('smallint')
   number!: number;
 
-  /** A soma das parcelas bate exatamente com transaction.amount. */
+  /** A soma das tranches bate exatamente com transaction.amount. */
   @Column('decimal', {
     precision: 15,
     scale: 2,
@@ -27,10 +35,12 @@ export class TransactionSplitEntity extends BaseEntity {
   })
   amount!: number;
 
+  /** Filtrado por esta coluna, o total do período é caixa. */
+  @Index('IDX_transaction_tranches_due_date')
   @Column('date')
   dueDate!: string;
 
-  /** Cada parcela cai num ciclo diferente do cartão. */
+  /** Preenchido se e só se a forma de pagamento é crédito. */
   @Column('varchar', { length: 26, nullable: true })
   cycleId!: string | null;
 

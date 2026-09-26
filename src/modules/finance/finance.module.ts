@@ -6,7 +6,7 @@ import { PaymentMethodEntity } from './entities/payment-method.entity';
 import { PaymentMethodCycleEntity } from './entities/payment-method-cycle.entity';
 import { TagEntity } from './entities/tag.entity';
 import { TransactionEntity } from './entities/transaction.entity';
-import { TransactionSplitEntity } from './entities/transaction-split.entity';
+import { TransactionTrancheEntity } from './entities/transaction-tranche.entity';
 import { BillEntity } from './entities/bill.entity';
 
 import { UserResolveService } from './services/user-resolve/user-resolve.service';
@@ -18,9 +18,10 @@ import { TransactionListService } from './services/transaction-list/transaction-
 import { TransactionGetService } from './services/transaction-get/transaction-get.service';
 import { TransactionUpdateService } from './services/transaction-update/transaction-update.service';
 import { TransactionDeleteService } from './services/transaction-delete/transaction-delete.service';
-import { SplitGenerateService } from './services/split-generate/split-generate.service';
-import { SplitListService } from './services/split-list/split-list.service';
-import { SplitPayService } from './services/split-pay/split-pay.service';
+import { TrancheGenerateService } from './services/tranche-generate/tranche-generate.service';
+import { TrancheListService } from './services/tranche-list/tranche-list.service';
+import { TrancheDueListService } from './services/tranche-due-list/tranche-due-list.service';
+import { TranchePayService } from './services/tranche-pay/tranche-pay.service';
 import { PaymentMethodCreateService } from './services/payment-method-create/payment-method-create.service';
 import { PaymentMethodListService } from './services/payment-method-list/payment-method-list.service';
 import { PaymentMethodUpdateService } from './services/payment-method-update/payment-method-update.service';
@@ -52,7 +53,8 @@ import { TransactionCreateController } from './controllers/transaction-create/tr
 import { TransactionUpdateController } from './controllers/transaction-update/transaction-update.controller';
 import { TransactionDeleteController } from './controllers/transaction-delete/transaction-delete.controller';
 import { TransactionBulkDeleteController } from './controllers/transaction-bulk-delete/transaction-bulk-delete.controller';
-import { SplitPayController } from './controllers/split-pay/split-pay.controller';
+import { TranchePayController } from './controllers/tranche-pay/tranche-pay.controller';
+import { TrancheDueListController } from './controllers/tranche-due-list/tranche-due-list.controller';
 import { PaymentMethodListController } from './controllers/payment-method-list/payment-method-list.controller';
 import { PaymentMethodCreateController } from './controllers/payment-method-create/payment-method-create.controller';
 import { PaymentMethodUpdateController } from './controllers/payment-method-update/payment-method-update.controller';
@@ -77,6 +79,7 @@ import { ConsolidatedPayController } from './controllers/consolidated-pay/consol
 import { ReportController } from './controllers/report/report.controller';
 
 import { TransactionCreateUseCase } from './use-cases/transaction-create/transaction-create.use-case';
+import { TransactionUpdateUseCase } from './use-cases/transaction-update/transaction-update.use-case';
 import { BillPayUseCase } from './use-cases/bill-pay/bill-pay.use-case';
 
 const providers = [
@@ -89,9 +92,10 @@ const providers = [
   TransactionGetService,
   TransactionUpdateService,
   TransactionDeleteService,
-  SplitGenerateService,
-  SplitListService,
-  SplitPayService,
+  TrancheGenerateService,
+  TrancheListService,
+  TrancheDueListService,
+  TranchePayService,
   PaymentMethodCreateService,
   PaymentMethodListService,
   PaymentMethodUpdateService,
@@ -116,6 +120,7 @@ const providers = [
   ReportRepository,
   ConsolidatedRepository,
   TransactionCreateUseCase,
+  TransactionUpdateUseCase,
   BillPayUseCase,
 ];
 
@@ -128,7 +133,7 @@ const providers = [
       PaymentMethodCycleEntity,
       TagEntity,
       TransactionEntity,
-      TransactionSplitEntity,
+      TransactionTrancheEntity,
       BillEntity,
     ]),
   ],
@@ -139,7 +144,8 @@ const providers = [
     TransactionUpdateController,
     TransactionDeleteController,
     TransactionBulkDeleteController,
-    SplitPayController,
+    TrancheDueListController,
+    TranchePayController,
     PaymentMethodListController,
     PaymentMethodCreateController,
     PaymentMethodUpdateController,

@@ -14,12 +14,10 @@ export interface ConsolidatedRow {
 }
 
 /**
- * O outro repositório: cruza payment_method_cycles, transactions e
- * transaction_splits somando o que caiu em cada fatura.
- *
- * Compra à vista guarda o cycle_id na própria transaction; compra parcelada
- * deixa transaction.cycle_id nulo e cada parcela carrega o seu. O filtro
- * `installments = 1` é a segunda trava contra contar duas vezes.
+ * Cruza payment_method_cycles com transaction_tranches somando o que caiu em
+ * cada fatura. Toda compra no cartão tem tranche, à vista inclusive, então o
+ * `cycle_id` da tranche é a única fonte — sem UNION e sem trava contra somar
+ * duas vezes.
  */
 @Injectable()
 export class ConsolidatedRepository {
@@ -39,17 +37,12 @@ export class ConsolidatedRepository {
              c.closed_at         AS closed_at,
              pm.id               AS payment_method_id,
              pm.description      AS payment_method_description,
-             COALESCE(SUM(item.amount), 0) AS total,
-             COUNT(item.id)      AS item_count
+             COALESCE(SUM(tr.amount), 0) AS total,
+             COUNT(tr.id)        AS item_count
         FROM payment_method_cycles c
         JOIN payment_methods pm ON pm.id = c.payment_method_id
-        LEFT JOIN (
-              SELECT id, cycle_id, amount FROM transactions
-               WHERE deleted_at IS NULL AND cycle_id IS NOT NULL AND installments = 1
-               UNION ALL
-              SELECT id, cycle_id, amount FROM transaction_splits
-               WHERE deleted_at IS NULL AND cycle_id IS NOT NULL
-             ) item ON item.cycle_id = c.id
+        LEFT JOIN transaction_tranches tr
+               ON tr.cycle_id = c.id AND tr.deleted_at IS NULL
        WHERE pm.user_id = $1
          AND c.deleted_at IS NULL
          AND ($4::varchar IS NULL OR c.id = $4)

@@ -1,13 +1,24 @@
 import { Injectable } from '@nestjs/common';
-import { TransactionType } from '@/modules/finance/entities/transaction.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { TransactionEntity } from '@/modules/finance/entities/transaction.entity';
+import { Repository, SelectQueryBuilder } from 'typeorm';
+import { TransactionType } from '@/modules/finance/entities/transaction.entity';
+import { TransactionTrancheEntity } from '@/modules/finance/entities/transaction-tranche.entity';
 
 export interface ReportRows {
   totals: { type: TransactionType; total: string; count: string }[];
   groups: { key: string | null; label: string | null; total: string; count: string }[];
 }
+
+/**
+ * `accrual` é o mês da compra. `cycle` é o ciclo que abre no mês: com fechamento
+ * no dia 7, setembro vai de 08/09 a 07/10, e cada cartão tem a sua janela — por
+ * isso o filtro vai no `start_date` do ciclo, não numa data única. Forma de
+ * pagamento sem ciclo cai no mês civil, pelo vencimento da tranche.
+ *
+ * A soma é sempre de tranche. Como a soma das tranches é o total da compra,
+ * `accrual` dá exatamente o mesmo número que somar `transactions.amount`.
+ */
+export type ReportBasis = 'accrual' | 'cycle';
 
 interface Input {
   userId: string;
@@ -15,37 +26,54 @@ interface Input {
   to: string;
   groupBy: 'tag' | 'payment_method' | 'none';
   type: TransactionType;
+  basis: ReportBasis;
 }
 
 /**
- * Um dos dois repositórios do projeto: soma agregada cruzando transactions,
- * transaction_tag, tags e payment_methods. Não sai de um find().
+ * Um dos dois repositórios do projeto: soma agregada cruzando
+ * transaction_tranches, transactions, transaction_tag, tags e payment_methods.
+ * Não sai de um find().
  */
 @Injectable()
 export class ReportRepository {
   constructor(
-    @InjectRepository(TransactionEntity)
-    private readonly repo: Repository<TransactionEntity>,
+    @InjectRepository(TransactionTrancheEntity)
+    private readonly repo: Repository<TransactionTrancheEntity>,
   ) {}
 
-  async exec({ userId, from, to, groupBy, type }: Input): Promise<ReportRows> {
-    const totals = await this.repo
-      .createQueryBuilder('t')
+  async exec({ userId, from, to, groupBy, type, basis }: Input): Promise<ReportRows> {
+    // Duas queries precisam da mesma base e da mesma janela, e no `cycle` a
+    // janela traz um join junto. Vem depois do `where` de propósito: `where()`
+    // substitui as condições já postas, `andWhere()` soma.
+    const scoped = (): SelectQueryBuilder<TransactionTrancheEntity> => {
+      const query = this.repo
+        .createQueryBuilder('tr')
+        .innerJoin('transactions', 't', 't.id = tr.transaction_id')
+        .where('t.user_id = :userId', { userId })
+        .andWhere('t.deleted_at IS NULL');
+
+      return basis === 'accrual'
+        ? query.andWhere('t.date BETWEEN :from AND :to', { from, to })
+        : query
+            .leftJoin('payment_method_cycles', 'c', 'c.id = tr.cycle_id')
+            .andWhere(
+              '(c.start_date BETWEEN :from AND :to OR (tr.cycle_id IS NULL AND tr.due_date BETWEEN :from AND :to))',
+              { from, to },
+            );
+    };
+
+    const totals = await scoped()
       .select('t.type', 'type')
-      .addSelect('SUM(t.amount)', 'total')
-      .addSelect('COUNT(t.id)', 'count')
-      .where('t.user_id = :userId', { userId })
-      .andWhere('t.date BETWEEN :from AND :to', { from, to })
+      .addSelect('SUM(tr.amount)', 'total')
+      // A compra parcelada tem N tranches: contar linha inflaria o número de
+      // lançamentos do período.
+      .addSelect('COUNT(DISTINCT t.id)', 'count')
       .groupBy('t.type')
       .getRawMany<{ type: TransactionType; total: string; count: string }>();
 
     if (groupBy === 'none') return { totals, groups: [] };
 
-    const query = this.repo
-      .createQueryBuilder('t')
-      .where('t.user_id = :userId', { userId })
-      .andWhere('t.date BETWEEN :from AND :to', { from, to })
-      .andWhere('t.type = :type', { type });
+    const query = scoped().andWhere('t.type = :type', { type });
 
     if (groupBy === 'tag') {
       query
@@ -65,7 +93,9 @@ export class ReportRepository {
     }
 
     // Depois do `select` do agrupamento: `select` zera o que veio antes dele.
-    query.addSelect('SUM(t.amount)', 'total').addSelect('COUNT(t.id)', 'count');
+    query
+      .addSelect('SUM(tr.amount)', 'total')
+      .addSelect('COUNT(DISTINCT t.id)', 'count');
 
     const groups = await query.getRawMany<{
       key: string | null;

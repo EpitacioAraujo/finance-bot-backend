@@ -58,9 +58,10 @@ export const ACTIONS = {
       status: { type: 'string', enum: ['paid', 'pending'] },
     },
   },
-  list_splits: {
+  list_tranches: {
     kind: 'query',
-    description: 'Lista as parcelas de um lançamento parcelado.',
+    description:
+      'Lista as parcelas de um lançamento, com valor, vencimento e se já está paga. Compra à vista tem uma só.',
     params: { transactionId: { type: 'string', required: true } },
   },
   get_report: {
@@ -118,7 +119,7 @@ export const ACTIONS = {
       'Apaga um lançamento. O id precisa ter vindo de uma leitura desta conversa.',
     params: { id: { type: 'string', required: true } },
   },
-  pay_split: {
+  pay_tranche: {
     kind: 'command',
     description: 'Marca uma parcela como paga.',
     params: {
@@ -138,7 +139,7 @@ export const ACTIONS = {
   },
   pay_consolidated: {
     kind: 'command',
-    description: 'Fecha a fatura de um cartão e quita as parcelas dela.',
+    description: 'Fecha a fatura de um cartão e quita tudo que caiu nela.',
     params: { cycleId: { type: 'string', required: true } },
   },
   create_payment_method: {

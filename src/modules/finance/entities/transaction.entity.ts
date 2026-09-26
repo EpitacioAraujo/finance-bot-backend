@@ -12,9 +12,8 @@ import { BaseEntity } from '@/shared/entities/base.entity';
 import { decimalTransformer } from '@/shared/decimal.transformer';
 import { UserEntity } from './user.entity';
 import { PaymentMethodEntity } from './payment-method.entity';
-import { PaymentMethodCycleEntity } from './payment-method-cycle.entity';
 import { TagEntity } from './tag.entity';
-import { TransactionSplitEntity } from './transaction-split.entity';
+import { TransactionTrancheEntity } from './transaction-tranche.entity';
 
 export enum TransactionType {
   Income = 'income',
@@ -24,6 +23,11 @@ export enum TransactionType {
 export const TRANSACTION_TYPES: readonly TransactionType[] =
   Object.values(TransactionType);
 
+/**
+ * O fato da compra: o que foi, quanto, quando comprei. Como o dinheiro sai está
+ * nas tranches — nunca aqui. Filtrado por `date`, o total do período é
+ * competência; por `tranche.dueDate`, é caixa.
+ */
 @Entity('transactions')
 @Index(['userId', 'date'])
 export class TransactionEntity extends BaseEntity {
@@ -59,14 +63,6 @@ export class TransactionEntity extends BaseEntity {
   @JoinColumn({ name: 'payment_method_id' })
   paymentMethod?: PaymentMethodEntity;
 
-  /** Preenchido quando cai num cartão de crédito. */
-  @Column('varchar', { length: 26, nullable: true })
-  cycleId!: string | null;
-
-  @ManyToOne(() => PaymentMethodCycleEntity, { nullable: true })
-  @JoinColumn({ name: 'cycle_id' })
-  cycle?: PaymentMethodCycleEntity | null;
-
   /** Preenchido quando é o pagamento de uma conta. */
   @Column('varchar', { length: 26, nullable: true })
   billId!: string | null;
@@ -77,10 +73,6 @@ export class TransactionEntity extends BaseEntity {
    */
   @Column('date', { nullable: true })
   billOccurrenceDate!: string | null;
-
-  /** 1 = à vista. */
-  @Column('smallint', { default: 1 })
-  installments!: number;
 
   /** Rastro de qual mensagem do WhatsApp gerou o lançamento. */
   @Column('varchar', { length: 26, nullable: true })
@@ -97,6 +89,7 @@ export class TransactionEntity extends BaseEntity {
   })
   tags?: TagEntity[];
 
-  @OneToMany(() => TransactionSplitEntity, (split) => split.transaction)
-  splits?: TransactionSplitEntity[];
+  /** Nunca vazio: à vista tem uma. `tranches.length` é o número de parcelas. */
+  @OneToMany(() => TransactionTrancheEntity, (tranche) => tranche.transaction)
+  tranches?: TransactionTrancheEntity[];
 }

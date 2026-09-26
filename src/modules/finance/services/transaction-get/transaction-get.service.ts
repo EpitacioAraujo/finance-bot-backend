@@ -24,8 +24,8 @@ export class TransactionGetService {
   }): Promise<TransactionView> {
     const transaction = await this.transactions.findOne({
       where: { id, userId },
-      relations: { paymentMethod: true, tags: true, splits: true },
-      order: { splits: { number: 'ASC' } },
+      relations: { paymentMethod: true, tags: true, tranches: true },
+      order: { tranches: { number: 'ASC' } },
     });
     if (!transaction) throw new NotFoundError('Transação não encontrada');
     return toTransactionView(transaction);

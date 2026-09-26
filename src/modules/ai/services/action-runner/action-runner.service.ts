@@ -14,10 +14,9 @@ import { PaymentMethodCreateService } from '@/modules/finance/services/payment-m
 import { TagListService } from '@/modules/finance/services/tag-list/tag-list.service';
 import { TagCreateService } from '@/modules/finance/services/tag-create/tag-create.service';
 import { TransactionListService } from '@/modules/finance/services/transaction-list/transaction-list.service';
-import { TransactionUpdateService } from '@/modules/finance/services/transaction-update/transaction-update.service';
 import { TransactionDeleteService } from '@/modules/finance/services/transaction-delete/transaction-delete.service';
-import { SplitListService } from '@/modules/finance/services/split-list/split-list.service';
-import { SplitPayService } from '@/modules/finance/services/split-pay/split-pay.service';
+import { TrancheListService } from '@/modules/finance/services/tranche-list/tranche-list.service';
+import { TranchePayService } from '@/modules/finance/services/tranche-pay/tranche-pay.service';
 import { BillListService } from '@/modules/finance/services/bill-list/bill-list.service';
 import { BillCreateService } from '@/modules/finance/services/bill-create/bill-create.service';
 import { PaymentMethodResolveService } from '@/modules/finance/services/payment-method-resolve/payment-method-resolve.service';
@@ -25,6 +24,7 @@ import { ReportService } from '@/modules/finance/services/report/report.service'
 import { ConsolidatedListService } from '@/modules/finance/services/consolidated-list/consolidated-list.service';
 import { ConsolidatedPayService } from '@/modules/finance/services/consolidated-pay/consolidated-pay.service';
 import { TransactionCreateUseCase } from '@/modules/finance/use-cases/transaction-create/transaction-create.use-case';
+import { TransactionUpdateUseCase } from '@/modules/finance/use-cases/transaction-update/transaction-update.use-case';
 import { BillPayUseCase } from '@/modules/finance/use-cases/bill-pay/bill-pay.use-case';
 import { TagResolveService } from '@/modules/finance/services/tag-resolve/tag-resolve.service';
 
@@ -72,10 +72,9 @@ export class ActionRunnerService {
     private readonly tagCreate: TagCreateService,
     private readonly tagResolve: TagResolveService,
     private readonly transactionList: TransactionListService,
-    private readonly transactionUpdate: TransactionUpdateService,
     private readonly transactionDelete: TransactionDeleteService,
-    private readonly splitList: SplitListService,
-    private readonly splitPay: SplitPayService,
+    private readonly trancheList: TrancheListService,
+    private readonly tranchePay: TranchePayService,
     private readonly billList: BillListService,
     private readonly billCreate: BillCreateService,
     private readonly paymentMethodResolve: PaymentMethodResolveService,
@@ -83,6 +82,7 @@ export class ActionRunnerService {
     private readonly consolidatedList: ConsolidatedListService,
     private readonly consolidatedPay: ConsolidatedPayService,
     private readonly transactionCreate: TransactionCreateUseCase,
+    private readonly transactionUpdate: TransactionUpdateUseCase,
     private readonly billPay: BillPayUseCase,
   ) {
     this.handlers = {
@@ -108,8 +108,11 @@ export class ActionRunnerService {
           to: p.to as string,
           status: p.status as 'paid' | 'pending' | undefined,
         }),
-      list_splits: (userId, p) =>
-        this.splitList.exec({ userId, transactionId: p.transactionId as string }),
+      list_tranches: (userId, p) =>
+        this.trancheList.exec({
+          userId,
+          transactionId: p.transactionId as string,
+        }),
       get_report: (userId, p) =>
         this.report.exec({
           userId,
@@ -146,16 +149,16 @@ export class ActionRunnerService {
         }),
       delete_transaction: (userId, p) =>
         this.transactionDelete.exec({ userId, ids: [p.id as string] }),
-      pay_split: async (userId, p) => {
-        const splits = await this.splitList.exec({
+      pay_tranche: async (userId, p) => {
+        const tranches = await this.trancheList.exec({
           userId,
           transactionId: p.transactionId as string,
         });
         const target = p.number
-          ? splits.find((split) => split.number === p.number)
-          : splits.find((split) => !split.paidAt);
+          ? tranches.find((tranche) => tranche.number === p.number)
+          : tranches.find((tranche) => !tranche.paidAt);
         if (!target) throw new ValidationError('Não achei essa parcela em aberto');
-        return this.splitPay.exec({ userId, splitId: target.id });
+        return this.tranchePay.exec({ userId, trancheId: target.id });
       },
       pay_bill: (userId, p) =>
         this.billPay.exec({

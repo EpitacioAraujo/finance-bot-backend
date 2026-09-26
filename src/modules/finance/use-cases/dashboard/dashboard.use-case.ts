@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionType } from '@/modules/finance/entities/transaction.entity';
 import { ReportService } from '@/modules/finance/services/report/report.service';
-import { PayableListUseCase } from '@/modules/finance/use-cases/payable-list/payable-list.use-case';
+import { BillListService } from '@/modules/finance/services/bill-list/bill-list.service';
 
 export interface DashboardLine {
   key: string;
@@ -11,26 +11,29 @@ export interface DashboardLine {
 
 export interface DashboardOutput {
   totalIncome: number;
-  /** Realizado + o que ainda vence no mês. */
+  /** Tranche da janela do ciclo + conta prevista ainda sem pagamento. */
   totalExpense: number;
   balance: number;
-  /** Despesa por forma de pagamento: lançamento do mês + fatura em aberto. */
+  /** Despesa por forma de pagamento: no cartão, é a fatura que abriu no mês. */
   byPaymentMethod: DashboardLine[];
   /** Conta a vencer não tem forma de pagamento útil aqui — cada uma na sua linha. */
   pendingBills: DashboardLine[];
 }
 
 /**
- * Despesa do mês aqui é caixa + compromisso: o que já saiu mais fatura em
- * aberto e conta a vencer. Como a compra parcelada já entrou como despesa
- * inteira na data da compra, a parcela dela reaparece nos meses seguintes por
- * esta via — é o preço da leitura escolhida, não um erro de soma.
+ * O mês aqui é o ciclo que abre nele: com fechamento no dia 7, setembro vai de
+ * 08/09 a 07/10. Com isso a compra parcelada pesa uma parcela por mês em vez de
+ * inteira na compra, e a fatura do cartão não entra à parte — ela *é* a soma das
+ * tranches de crédito da janela. Forma de pagamento sem ciclo cai no mês civil.
+ *
+ * O que sobra fora da conta é previsão: ocorrência de conta sem pagamento não
+ * tem tranche, e é o único valor somado por cima.
  */
 @Injectable()
 export class DashboardUseCase {
   constructor(
     private readonly report: ReportService,
-    private readonly payableList: PayableListUseCase,
+    private readonly billList: BillListService,
   ) {}
 
   async exec({
@@ -42,54 +45,42 @@ export class DashboardUseCase {
     from: string;
     to: string;
   }): Promise<DashboardOutput> {
-    const [report, payables] = await Promise.all([
+    const [report, bills] = await Promise.all([
       this.report.exec({
         userId,
         from,
         to,
+        basis: 'cycle',
         groupBy: 'payment_method',
         type: TransactionType.Expense,
       }),
-      this.payableList.exec({ userId, from, to, type: TransactionType.Expense }),
+      this.billList.exec({
+        userId,
+        from,
+        to,
+        status: 'pending',
+        type: TransactionType.Expense,
+      }),
     ]);
 
-    const byPaymentMethod = new Map<string, DashboardLine>();
-    for (const group of report.groups) {
-      byPaymentMethod.set(group.key, {
-        key: group.key,
-        label: group.label,
-        total: group.total,
-      });
-    }
-
-    const pending = payables.items.filter((item) => item.status === 'pending');
-
-    // Fatura fechada já não pesa: as compras dela entraram como despesa na data
-    // em que aconteceram.
-    for (const cycle of pending.filter((item) => item.kind === 'cycle')) {
-      const current = byPaymentMethod.get(cycle.paymentMethod.id);
-      byPaymentMethod.set(cycle.paymentMethod.id, {
-        key: cycle.paymentMethod.id,
-        label: cycle.paymentMethod.description,
-        total: (current?.total ?? 0) + cycle.amount,
-      });
-    }
-
-    const totalExpense = report.totalExpense + payables.summary.totalPending;
+    const totalExpense = report.totalExpense + bills.summary.totalPending;
 
     return {
       totalIncome: report.totalIncome,
       totalExpense,
       balance: report.totalIncome - totalExpense,
-      byPaymentMethod: [...byPaymentMethod.values()].sort(
-        (a, b) => b.total - a.total,
-      ),
-      pendingBills: pending
-        .filter((item) => item.kind === 'bill')
+      byPaymentMethod: report.groups
+        .map((group) => ({
+          key: group.key,
+          label: group.label,
+          total: group.total,
+        }))
+        .sort((a, b) => b.total - a.total),
+      pendingBills: bills.items
         .map((bill) => ({
-          key: bill.key,
+          key: `${bill.id}-${bill.occurrenceDate}`,
           label: bill.description,
-          total: bill.amount,
+          total: bill.predictedAmount,
         }))
         .sort((a, b) => b.total - a.total),
     };

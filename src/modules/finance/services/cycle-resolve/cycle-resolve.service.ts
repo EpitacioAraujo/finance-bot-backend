@@ -12,6 +12,44 @@ interface Input {
   date: string;
 }
 
+export interface CycleWindow {
+  referenceMonth: string;
+  startDate: string;
+  endDate: string;
+  dueDate: string;
+}
+
+/**
+ * O dia do fechamento **abre** o ciclo: ele vai do dia do fechamento até a
+ * véspera do próximo. Fechamento no dia 7 → 07/09 a 06/10, e a compra do dia 7
+ * já é do ciclo novo.
+ *
+ * Separada do service porque é a aritmética que erra sozinha — o resto aqui é
+ * só achar ou criar a linha.
+ */
+export const cycleWindow = (
+  closingDay: number,
+  dueDay: number,
+  date: string,
+): CycleWindow => {
+  const purchase = parseIso(date);
+  const year = purchase.getUTCFullYear();
+  const closeMonth =
+    purchase.getUTCDate() >= closingDay
+      ? purchase.getUTCMonth() + 1
+      : purchase.getUTCMonth();
+  // Vencimento cai no mês seguinte ao fechamento quando dueDay <= closingDay.
+  const dueMonth = dueDay <= closingDay ? closeMonth + 1 : closeMonth;
+  const dueDate = dateAt(year, dueMonth, dueDay);
+
+  return {
+    referenceMonth: monthKey(dueDate),
+    startDate: dateAt(year, closeMonth - 1, closingDay),
+    endDate: addDays(dateAt(year, closeMonth, closingDay), -1),
+    dueDate,
+  };
+};
+
 /**
  * Acha o ciclo cuja janela contém `date`; se não existe, cria. É a única porta
  * de entrada para fatura — ninguém calcula ciclo em outro lugar.
@@ -44,24 +82,11 @@ export class CycleResolveService {
       );
     }
 
-    const purchase = parseIso(date);
-    const year = purchase.getUTCFullYear();
-    // Compra depois do fechamento entra na fatura do mês seguinte.
-    const closeMonth =
-      purchase.getUTCDate() > method.closingDay
-        ? purchase.getUTCMonth() + 1
-        : purchase.getUTCMonth();
-    // Vencimento cai no mês seguinte ao fechamento quando dueDay <= closingDay.
-    const dueMonth =
-      method.dueDay <= method.closingDay ? closeMonth + 1 : closeMonth;
-
-    const startDate = addDays(
-      dateAt(year, closeMonth - 1, method.closingDay),
-      1,
+    const { referenceMonth, startDate, endDate, dueDate } = cycleWindow(
+      method.closingDay,
+      method.dueDay,
+      date,
     );
-    const endDate = dateAt(year, closeMonth, method.closingDay);
-    const dueDate = dateAt(year, dueMonth, method.dueDay);
-    const referenceMonth = monthKey(dueDate);
 
     const existing = await this.cycles.findOne({
       where: { paymentMethodId, referenceMonth },

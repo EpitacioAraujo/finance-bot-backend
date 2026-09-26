@@ -9,8 +9,8 @@ import {
   Min,
 } from 'class-validator';
 import { CurrentUser, CurrentUserGuard } from '@/shared/current-user';
-import { TransactionUpdateService } from '@/modules/finance/services/transaction-update/transaction-update.service';
-import { TransactionEntity } from '@/modules/finance/entities/transaction.entity';
+import { TransactionUpdateUseCase } from '@/modules/finance/use-cases/transaction-update/transaction-update.use-case';
+import { TransactionView } from '@/modules/finance/services/transaction-list/transaction-list.service';
 
 export class TransactionUpdateBodyDto {
   @IsOptional() @IsString() description?: string;
@@ -24,14 +24,14 @@ export class TransactionUpdateBodyDto {
 @Controller('transactions')
 @UseGuards(CurrentUserGuard)
 export class TransactionUpdateController {
-  constructor(private readonly service: TransactionUpdateService) {}
+  constructor(private readonly useCase: TransactionUpdateUseCase) {}
 
   @Patch(':id')
   async exec(
     @CurrentUser() userId: string,
     @Param('id') id: string,
     @Body() body: TransactionUpdateBodyDto,
-  ): Promise<TransactionEntity> {
-    return this.service.exec({ userId, id, ...body });
+  ): Promise<TransactionView> {
+    return this.useCase.exec({ userId, id, ...body });
   }
 }

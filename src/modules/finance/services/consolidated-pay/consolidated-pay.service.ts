@@ -3,11 +3,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { PaymentMethodCycleEntity } from '@/modules/finance/entities/payment-method-cycle.entity';
 import { PaymentMethodEntity } from '@/modules/finance/entities/payment-method.entity';
-import { TransactionSplitEntity } from '@/modules/finance/entities/transaction-split.entity';
+import { TransactionTrancheEntity } from '@/modules/finance/entities/transaction-tranche.entity';
 import { ConflictError, NotFoundError } from '@/shared/errors';
 
 /**
- * Pagar a fatura fecha o ciclo e quita as parcelas dele. **Não cria transação.**
+ * Pagar a fatura fecha o ciclo e quita as tranches dele — compra à vista no
+ * cartão incluída, que antes ficava sem estado de pago. **Não cria transação.**
  * As compras do cartão já são as despesas; lançar o pagamento da fatura como
  * despesa contaria o mesmo dinheiro duas vezes.
  */
@@ -18,8 +19,8 @@ export class ConsolidatedPayService {
     private readonly cycles: Repository<PaymentMethodCycleEntity>,
     @InjectRepository(PaymentMethodEntity)
     private readonly methods: Repository<PaymentMethodEntity>,
-    @InjectRepository(TransactionSplitEntity)
-    private readonly splits: Repository<TransactionSplitEntity>,
+    @InjectRepository(TransactionTrancheEntity)
+    private readonly tranches: Repository<TransactionTrancheEntity>,
   ) {}
 
   async exec({
@@ -46,10 +47,7 @@ export class ConsolidatedPayService {
     }
 
     const when = paidAt ?? new Date();
-    await this.splits.update(
-      { cycleId, paidAt: IsNull() },
-      { paidAt: when },
-    );
+    await this.tranches.update({ cycleId, paidAt: IsNull() }, { paidAt: when });
 
     cycle.closedAt = when;
     return this.cycles.save(cycle);

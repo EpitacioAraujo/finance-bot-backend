@@ -1,15 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { TransactionSplitEntity } from '@/modules/finance/entities/transaction-split.entity';
+import { TransactionTrancheEntity } from '@/modules/finance/entities/transaction-tranche.entity';
 import { TransactionEntity } from '@/modules/finance/entities/transaction.entity';
 import { NotFoundError } from '@/shared/errors';
 
 @Injectable()
-export class SplitListService {
+export class TrancheListService {
   constructor(
-    @InjectRepository(TransactionSplitEntity)
-    private readonly splits: Repository<TransactionSplitEntity>,
+    @InjectRepository(TransactionTrancheEntity)
+    private readonly tranches: Repository<TransactionTrancheEntity>,
     @InjectRepository(TransactionEntity)
     private readonly transactions: Repository<TransactionEntity>,
   ) {}
@@ -20,13 +20,13 @@ export class SplitListService {
   }: {
     userId: string;
     transactionId: string;
-  }): Promise<TransactionSplitEntity[]> {
+  }): Promise<TransactionTrancheEntity[]> {
     const owned = await this.transactions.findOne({
       where: { id: transactionId, userId },
     });
     if (!owned) throw new NotFoundError('Lançamento não encontrado');
 
-    return this.splits.find({
+    return this.tranches.find({
       where: { transactionId },
       order: { number: 'ASC' },
     });
