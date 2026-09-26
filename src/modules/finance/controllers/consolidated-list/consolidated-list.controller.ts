@@ -2,9 +2,9 @@ import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { IsDateString } from 'class-validator';
 import { CurrentUser, CurrentUserGuard } from '@/shared/current-user';
 import {
-  ConsolidatedListService,
+  ConsolidatedListUseCase,
   ConsolidatedView,
-} from '@/modules/finance/services/consolidated-list/consolidated-list.service';
+} from '@/modules/finance/use-cases/consolidated-list/consolidated-list.use-case';
 
 export class ConsolidatedListQueryDto {
   @IsDateString() from!: string;
@@ -14,13 +14,13 @@ export class ConsolidatedListQueryDto {
 @Controller('consolidated')
 @UseGuards(CurrentUserGuard)
 export class ConsolidatedListController {
-  constructor(private readonly service: ConsolidatedListService) {}
+  constructor(private readonly useCase: ConsolidatedListUseCase) {}
 
   @Get()
   async exec(
     @CurrentUser() userId: string,
     @Query() query: ConsolidatedListQueryDto,
   ): Promise<ConsolidatedView[]> {
-    return this.service.exec({ userId, ...query });
+    return this.useCase.exec({ userId, ...query });
   }
 }

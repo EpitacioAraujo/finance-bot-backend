@@ -13,7 +13,7 @@ import { buildPrompt } from '@/modules/ai/prompt';
 import { DomainError } from '@/shared/errors';
 import { isoToday } from '@/shared/date';
 
-const HISTORY_LIMIT = 100;
+const HISTORY_LIMIT = 60;
 const FALLBACK_REPLY = 'Não entendi direito. Pode mandar de novo?';
 
 /** Ids que o agente pode usar em update/delete: só o que ele leu nesta rodada. */

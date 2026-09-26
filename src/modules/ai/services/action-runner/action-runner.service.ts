@@ -21,7 +21,7 @@ import { BillListService } from '@/modules/finance/services/bill-list/bill-list.
 import { BillCreateService } from '@/modules/finance/services/bill-create/bill-create.service';
 import { PaymentMethodResolveService } from '@/modules/finance/services/payment-method-resolve/payment-method-resolve.service';
 import { ReportService } from '@/modules/finance/services/report/report.service';
-import { ConsolidatedListService } from '@/modules/finance/services/consolidated-list/consolidated-list.service';
+import { ConsolidatedListUseCase } from '@/modules/finance/use-cases/consolidated-list/consolidated-list.use-case';
 import { ConsolidatedPayService } from '@/modules/finance/services/consolidated-pay/consolidated-pay.service';
 import { TransactionCreateUseCase } from '@/modules/finance/use-cases/transaction-create/transaction-create.use-case';
 import { TransactionUpdateUseCase } from '@/modules/finance/use-cases/transaction-update/transaction-update.use-case';
@@ -79,7 +79,7 @@ export class ActionRunnerService {
     private readonly billCreate: BillCreateService,
     private readonly paymentMethodResolve: PaymentMethodResolveService,
     private readonly report: ReportService,
-    private readonly consolidatedList: ConsolidatedListService,
+    private readonly consolidatedList: ConsolidatedListUseCase,
     private readonly consolidatedPay: ConsolidatedPayService,
     private readonly transactionCreate: TransactionCreateUseCase,
     private readonly transactionUpdate: TransactionUpdateUseCase,
@@ -209,37 +209,56 @@ export class ActionRunnerService {
       throw new ValidationError(`O plano passou de ${MAX_ITEMS} ações`);
     }
 
-    const results: ActionResult[] = [];
+    // Validação de todos antes de executar qualquer um. Erro de schema é erro
+    // do agente, e ele conserta se souber qual foi — `throw` aqui matava o
+    // turno inteiro com "Não entendi direito". Validar tudo antes é o que
+    // mantém a invariante de que plano inválido não executa nada pela metade.
+    const planned: { action: ActionName; params: Record<string, unknown> }[] =
+      [];
+    const invalid: ActionResult[] = [];
 
     for (const item of items) {
-      if (!isActionName(item.action)) {
-        this.logger.warn(`Ação fora do catálogo: ${item.action}`);
-        throw new ValidationError(`Ação desconhecida: ${item.action}`);
-      }
-      if (ACTIONS[item.action].kind !== expect) {
-        throw new ValidationError(
-          `${item.action} é ${ACTIONS[item.action].kind} e veio no lugar de ${expect}`,
-        );
-      }
+      try {
+        if (!isActionName(item.action)) {
+          throw new ValidationError(`Ação desconhecida: ${item.action}`);
+        }
+        if (ACTIONS[item.action].kind !== expect) {
+          throw new ValidationError(
+            `${item.action} é ${ACTIONS[item.action].kind} e veio no lugar de ${expect}`,
+          );
+        }
 
-      const params = validateParams(item.action, item.params);
+        const params = validateParams(item.action, item.params);
 
-      // Id inventado não existe — e se existir, é de outro registro.
-      if (
-        (item.action === 'update_transaction' ||
-          item.action === 'delete_transaction') &&
-        !knownIds.has(params.id as string)
-      ) {
-        throw new ValidationError(
-          `${item.action} exige um id vindo de uma leitura desta conversa`,
-        );
+        // Id inventado não existe — e se existir, é de outro registro.
+        if (
+          (item.action === 'update_transaction' ||
+            item.action === 'delete_transaction') &&
+          !knownIds.has(params.id as string)
+        ) {
+          throw new ValidationError(
+            `${item.action} exige um id vindo de uma leitura desta conversa`,
+          );
+        }
+
+        planned.push({ action: item.action, params });
+      } catch (error) {
+        if (!(error instanceof DomainError)) throw error;
+        this.logger.warn(`Plano inválido em ${item.action}: ${error.message}`);
+        invalid.push({ action: item.action, ok: false, error: error.message });
       }
+    }
 
+    if (invalid.length > 0) return invalid;
+
+    const results: ActionResult[] = [];
+
+    for (const { action, params } of planned) {
       try {
         results.push({
-          action: item.action,
+          action,
           ok: true,
-          data: await this.handlers[item.action](userId, params),
+          data: await this.handlers[action](userId, params),
         });
       } catch (error) {
         // Erro de domínio volta ao agente como resultado: é assim que ele
@@ -247,7 +266,7 @@ export class ActionRunnerService {
         // tenta de novo.
         if (!(error instanceof DomainError)) throw error;
         results.push({
-          action: item.action,
+          action,
           ok: false,
           error: error.message,
           ...(error instanceof AmbiguousError

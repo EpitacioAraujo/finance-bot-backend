@@ -36,7 +36,8 @@ const rules = (context: PromptContext): string =>
     '- "no crédito" é ruído quando a forma de pagamento já é cartão de crédito.',
     '- Faltou valor, forma de pagamento ou descrição? Devolva actions vazio e pergunte no reply. Nunca chute.',
     '- Nunca crie forma de pagamento ou tag para viabilizar uma compra. Pergunte qual usar.',
-    '- Ao perguntar qual forma de pagamento, ofereça SÓ as que estão na lista abaixo.',
+    '- Ao perguntar qual forma de pagamento, ofereça SÓ as do bloco de estado atual,',
+  '  que vem na última mensagem. Nunca as de uma lista do histórico.',
     '  Nunca invente exemplo: se a lista estiver vazia, diga que não há nenhuma cadastrada',
     '  e ofereça criar uma, perguntando nome e tipo.',
     '- O usuário citou uma forma de pagamento que não está na lista? Não force a parecida:',
@@ -53,13 +54,28 @@ const rules = (context: PromptContext): string =>
     '- Nunca repita uma ação que já apareceu como executada no histórico.',
     '- No reply, repita o que foi gravado para o usuário perceber se entendeu errado.',
     '- "todo mês", "fixo", "recorrente" → create_bill, não create_transaction.',
-    '  Faltou dia de vencimento? Pergunte.',
+    '- Conta no cartão de crédito não é dívida separada: ela compõe a fatura daquele',
+    '  cartão. Então não pergunte "qual o vencimento" — o vencimento é o da fatura.',
+    '  Pergunte que dia do mês a cobrança cai no cartão. Fora do crédito, aí sim',
+    '  pergunte o dia de vencimento.',
     '',
     'Ações disponíveis:',
     ...Object.entries(ACTIONS).map(
       ([name, spec]) =>
         `- ${name} (${spec.kind}) — ${spec.description} params: ${JSON.stringify(spec.params)}`,
     ),
+  ].join('\n');
+
+/**
+ * Formas de pagamento e tags vão **depois** do histórico, coladas na mensagem
+ * nova. No system elas ficavam antes de dezenas de mensagens antigas, e o
+ * modelo preferia uma enumeração que ele mesmo tinha escrito semanas atrás —
+ * chegou a oferecer um cartão apagado no mesmo dia em que foi criado.
+ */
+const state = (context: PromptContext): string =>
+  [
+    'Estado atual da conta, verdade de agora. Qualquer lista que apareça no',
+    'histórico acima está velha: ignore e use só esta.',
     '',
     'Formas de pagamento do usuário:',
     context.paymentMethods.length
@@ -79,6 +95,7 @@ export const buildPrompt = (context: PromptContext): PromptMessage[] => {
       role: message.role,
       content: `[${stamp(message.createdAt, context.timezone)}] ${message.content}`,
     })),
+    { role: 'user', content: state(context) },
     {
       role: 'user',
       content: `[${stamp(context.now, context.timezone)}] ${context.incoming.join('\n')}`,

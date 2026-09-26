@@ -166,7 +166,7 @@ export const ACTIONS = {
   create_bill: {
     kind: 'command',
     description:
-      'Cadastra uma conta recorrente ou prevista (aluguel, internet, IPTU). monthly exige dueDay; none e yearly exigem dueDate. Use o nome da forma de pagamento e da tag, nunca um id.',
+      'Cadastra uma conta recorrente ou prevista (aluguel, internet, IPTU). monthly exige dueDay; none e yearly exigem dueDate. Use o nome da forma de pagamento e da tag, nunca um id. Em cartão de crédito, dueDay/dueDate é o dia em que a COBRANÇA cai no cartão, não um vencimento próprio: a conta entra na fatura daquele cartão e quem manda no vencimento é a fatura.',
     params: {
       description: { type: 'string', required: true },
       predictedAmount: { type: 'number', required: true },

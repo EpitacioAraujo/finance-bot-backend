@@ -51,6 +51,21 @@ export const cycleWindow = (
 };
 
 /**
+ * A fatura em que uma cobrança daquela data cai. Null quando a forma de
+ * pagamento não é crédito ou está sem fechamento/vencimento — aí não há
+ * fatura, e a cobrança se explica sozinha.
+ *
+ * Não toca o banco: serve para ler o que ainda não aconteceu.
+ */
+export const cycleOf = (
+  method: PaymentMethodEntity,
+  date: string,
+): CycleWindow | null =>
+  method.kind === 'credit' && method.closingDay !== null && method.dueDay !== null
+    ? cycleWindow(method.closingDay, method.dueDay, date)
+    : null;
+
+/**
  * Acha o ciclo cuja janela contém `date`; se não existe, cria. É a única porta
  * de entrada para fatura — ninguém calcula ciclo em outro lugar.
  */

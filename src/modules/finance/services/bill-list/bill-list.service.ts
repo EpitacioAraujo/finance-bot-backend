@@ -6,6 +6,7 @@ import {
   TransactionEntity,
   TransactionType,
 } from '@/modules/finance/entities/transaction.entity';
+import { PaymentMethodKind } from '@/modules/finance/entities/payment-method.entity';
 import { dateAt, parseIso } from '@/shared/date';
 
 export interface BillView {
@@ -18,7 +19,8 @@ export interface BillView {
   paid: boolean;
   paidTransactionId: string | null;
   paidAmount: number | null;
-  paymentMethod: { id: string; description: string };
+  /** `kind` é o que diz se esta conta compõe uma fatura em vez de ser linha própria. */
+  paymentMethod: { id: string; description: string; kind: PaymentMethodKind };
   tag: { id: string; description: string } | null;
   notes: string | null;
 }
@@ -141,6 +143,7 @@ export class BillListService {
           paymentMethod: {
             id: bill.paymentMethodId,
             description: bill.paymentMethod?.description ?? '',
+            kind: bill.paymentMethod?.kind as PaymentMethodKind,
           },
           tag: bill.tag
             ? { id: bill.tag.id, description: bill.tag.description }

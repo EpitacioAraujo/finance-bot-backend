@@ -41,7 +41,8 @@ import { DashboardUseCase } from './use-cases/dashboard/dashboard.use-case';
 import { BillUpdateService } from './services/bill-update/bill-update.service';
 import { BillDeleteService } from './services/bill-delete/bill-delete.service';
 import { ReportService } from './services/report/report.service';
-import { ConsolidatedListService } from './services/consolidated-list/consolidated-list.service';
+import { ConsolidatedListUseCase } from './use-cases/consolidated-list/consolidated-list.use-case';
+import { ConsolidatedItemsUseCase } from './use-cases/consolidated-items/consolidated-items.use-case';
 import { ConsolidatedPayService } from './services/consolidated-pay/consolidated-pay.service';
 
 import { ReportRepository } from './repositories/report/report.repository';
@@ -110,12 +111,13 @@ const providers = [
   PaymentMethodGetService,
   TagGetService,
   ConsolidatedItemsService,
+  ConsolidatedItemsUseCase,
   PayableListUseCase,
   DashboardUseCase,
   BillUpdateService,
   BillDeleteService,
   ReportService,
-  ConsolidatedListService,
+  ConsolidatedListUseCase,
   ConsolidatedPayService,
   ReportRepository,
   ConsolidatedRepository,

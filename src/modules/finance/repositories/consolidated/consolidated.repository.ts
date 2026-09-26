@@ -17,7 +17,9 @@ export interface ConsolidatedRow {
 
 /**
  * Cruza payment_method_cycles com transaction_tranches somando o que caiu em
- * cada fatura. Toda compra no cartão tem tranche, à vista inclusive, então o
+ * cada fatura. O join com `transactions` é o que tira da conta a compra
+ * apagada: existe tranche viva de transação morta em dado antigo, e o
+ * `deleted_at` da tranche sozinho não enxergava isso. Toda compra no cartão tem tranche, à vista inclusive, então o
  * `cycle_id` da tranche é a única fonte — sem UNION e sem trava contra somar
  * duas vezes.
  */
@@ -41,13 +43,16 @@ export class ConsolidatedRepository {
              c.closed_at         AS closed_at,
              pm.id               AS payment_method_id,
              pm.description      AS payment_method_description,
-             COALESCE(SUM(tr.amount), 0) AS total,
-             COUNT(tr.id)        AS item_count
+             COALESCE(SUM(tr.amount) FILTER (WHERE t.id IS NOT NULL), 0) AS total,
+             COUNT(tr.id) FILTER (WHERE t.id IS NOT NULL) AS item_count
         FROM payment_method_cycles c
         JOIN payment_methods pm ON pm.id = c.payment_method_id
         LEFT JOIN transaction_tranches tr
                ON tr.cycle_id = c.id AND tr.deleted_at IS NULL
+        LEFT JOIN transactions t
+               ON t.id = tr.transaction_id AND t.deleted_at IS NULL
        WHERE pm.user_id = $1
+         AND pm.deleted_at IS NULL
          AND c.deleted_at IS NULL
          AND ($4::varchar IS NULL OR c.id = $4)
          AND c.due_date BETWEEN $2 AND $3
