@@ -9,24 +9,12 @@ export interface ReportRows {
   groups: { key: string | null; label: string | null; total: string; count: string }[];
 }
 
-/**
- * `accrual` é o mês da compra. `cycle` é o ciclo que abre no mês: com fechamento
- * no dia 7, setembro vai de 08/09 a 07/10, e cada cartão tem a sua janela — por
- * isso o filtro vai no `start_date` do ciclo, não numa data única. Forma de
- * pagamento sem ciclo cai no mês civil, pelo vencimento da tranche.
- *
- * A soma é sempre de tranche. Como a soma das tranches é o total da compra,
- * `accrual` dá exatamente o mesmo número que somar `transactions.amount`.
- */
-export type ReportBasis = 'accrual' | 'cycle';
-
 interface Input {
   userId: string;
   from: string;
   to: string;
   groupBy: 'tag' | 'payment_method' | 'none';
   type: TransactionType;
-  basis: ReportBasis;
 }
 
 /**
@@ -41,26 +29,17 @@ export class ReportRepository {
     private readonly repo: Repository<TransactionTrancheEntity>,
   ) {}
 
-  async exec({ userId, from, to, groupBy, type, basis }: Input): Promise<ReportRows> {
-    // Duas queries precisam da mesma base e da mesma janela, e no `cycle` a
-    // janela traz um join junto. Vem depois do `where` de propósito: `where()`
-    // substitui as condições já postas, `andWhere()` soma.
-    const scoped = (): SelectQueryBuilder<TransactionTrancheEntity> => {
-      const query = this.repo
+  async exec({ userId, from, to, groupBy, type }: Input): Promise<ReportRows> {
+    // Duas queries precisam da mesma base e da mesma janela, pelo mês da compra.
+    // A soma das tranches é o total da compra, então dá o mesmo que
+    // `transactions.amount`.
+    const scoped = (): SelectQueryBuilder<TransactionTrancheEntity> =>
+      this.repo
         .createQueryBuilder('tr')
         .innerJoin('transactions', 't', 't.id = tr.transaction_id')
         .where('t.user_id = :userId', { userId })
-        .andWhere('t.deleted_at IS NULL');
-
-      return basis === 'accrual'
-        ? query.andWhere('t.date BETWEEN :from AND :to', { from, to })
-        : query
-            .leftJoin('payment_method_cycles', 'c', 'c.id = tr.cycle_id')
-            .andWhere(
-              '(c.start_date BETWEEN :from AND :to OR (tr.cycle_id IS NULL AND tr.due_date BETWEEN :from AND :to))',
-              { from, to },
-            );
-    };
+        .andWhere('t.deleted_at IS NULL')
+        .andWhere('t.date BETWEEN :from AND :to', { from, to });
 
     const totals = await scoped()
       .select('t.type', 'type')

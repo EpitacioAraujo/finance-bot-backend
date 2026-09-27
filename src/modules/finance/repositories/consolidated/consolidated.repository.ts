@@ -31,8 +31,12 @@ export class ConsolidatedRepository {
     userId: string;
     from: string;
     to: string;
-    cycleId?: string;
+    /** `due`: fatura que vence no período. `cycle`: ciclo que abre nele. */
+    basis: 'due' | 'cycle';
   }): Promise<ConsolidatedRow[]> {
+    // Nome de coluna fixo, não vem de fora: interpolar não abre injeção.
+    const column = input.basis === 'cycle' ? 'c.start_date' : 'c.due_date';
+
     return this.dataSource.query<ConsolidatedRow[]>(
       `
       SELECT c.id                AS cycle_id,
@@ -54,12 +58,11 @@ export class ConsolidatedRepository {
        WHERE pm.user_id = $1
          AND pm.deleted_at IS NULL
          AND c.deleted_at IS NULL
-         AND ($4::varchar IS NULL OR c.id = $4)
-         AND c.due_date BETWEEN $2 AND $3
+         AND ${column} BETWEEN $2 AND $3
        GROUP BY c.id, c.reference_month, c.start_date, c.end_date, c.due_date, c.closed_at, pm.id, pm.description
        ORDER BY c.due_date ASC
       `,
-      [input.userId, input.from, input.to, input.cycleId ?? null],
+      [input.userId, input.from, input.to],
     );
   }
 }

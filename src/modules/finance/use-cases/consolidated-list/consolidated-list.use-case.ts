@@ -37,7 +37,8 @@ export interface ConsolidatedListInput {
   userId: string;
   from: string;
   to: string;
-  cycleId?: string;
+  /** Omitido, a fatura que vence no período. `cycle`: a que abre nele. */
+  basis?: 'due' | 'cycle';
 }
 
 /**
@@ -65,8 +66,9 @@ export class ConsolidatedListUseCase {
   ) {}
 
   async exec(input: ConsolidatedListInput): Promise<ConsolidatedView[]> {
+    const basis = input.basis ?? 'due';
     const [rows, methods] = await Promise.all([
-      this.repository.exec(input),
+      this.repository.exec({ ...input, basis }),
       this.paymentMethodList.exec({ userId: input.userId, activeOnly: false }),
     ]);
 
@@ -93,13 +95,14 @@ export class ConsolidatedListUseCase {
     );
 
     // Uma cobrança de hoje pode cair numa fatura que só vence dois meses
-    // depois, então a janela das contas é maior que a das faturas.
+    // depois, e no `cycle` uma cobrança do mês seguinte ainda cai num ciclo
+    // aberto neste — a janela das contas é maior que a das faturas nas duas pontas.
     const bills = credit.size
       ? (
           await this.billList.exec({
             userId: input.userId,
             from: addMonths(input.from, -2),
-            to: input.to,
+            to: addMonths(input.to, 1),
             type: TransactionType.Expense,
           })
         ).items
@@ -111,7 +114,8 @@ export class ConsolidatedListUseCase {
 
       const window = cycleOf(method, bill.occurrenceDate);
       if (!window) continue;
-      if (window.dueDate < input.from || window.dueDate > input.to) continue;
+      const anchor = basis === 'cycle' ? window.startDate : window.dueDate;
+      if (anchor < input.from || anchor > input.to) continue;
 
       const existing = views.find(
         (view) =>
@@ -142,9 +146,6 @@ export class ConsolidatedListUseCase {
 
       // Conta já paga não abre fatura sozinha: a compra dela é que faz isso.
       if (bill.paid) continue;
-
-      // Pedir uma fatura por id é pedir uma que existe; não se inventa virtual.
-      if (input.cycleId) continue;
 
       views.push({
         cycleId: null,

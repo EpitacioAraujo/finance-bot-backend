@@ -19,6 +19,8 @@ export interface BillView {
   paid: boolean;
   paidTransactionId: string | null;
   paidAmount: number | null;
+  /** Data do pagamento — a da transação, não a do vencimento. */
+  paidDate: string | null;
   /** `kind` é o que diz se esta conta compõe uma fatura em vez de ser linha própria. */
   paymentMethod: { id: string; description: string; kind: PaymentMethodKind };
   tag: { id: string; description: string } | null;
@@ -140,6 +142,7 @@ export class BillListService {
           paid: Boolean(match),
           paidTransactionId: match?.id ?? null,
           paidAmount: match?.amount ?? null,
+          paidDate: match?.date ?? null,
           paymentMethod: {
             id: bill.paymentMethodId,
             description: bill.paymentMethod?.description ?? '',

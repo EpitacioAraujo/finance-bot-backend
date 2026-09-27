@@ -1,8 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  ReportBasis,
-  ReportRepository,
-} from '@/modules/finance/repositories/report/report.repository';
+import { ReportRepository } from '@/modules/finance/repositories/report/report.repository';
 import { TransactionType } from '@/modules/finance/entities/transaction.entity';
 
 export interface ReportInput {
@@ -12,8 +9,6 @@ export interface ReportInput {
   groupBy: 'tag' | 'payment_method' | 'none';
   /** Os grupos cobrem um tipo por vez; os totais cobrem os dois. */
   type?: TransactionType;
-  /** Omitido, o período é a data da compra. `cycle` usa a janela da fatura. */
-  basis?: ReportBasis;
 }
 
 export interface ReportOutput {
@@ -32,7 +27,6 @@ export class ReportService {
     const rows = await this.repository.exec({
       ...input,
       type: input.type ?? TransactionType.Expense,
-      basis: input.basis ?? 'accrual',
     });
 
     const sum = (type: TransactionType): number =>

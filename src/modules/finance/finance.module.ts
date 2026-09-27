@@ -25,18 +25,11 @@ import { TranchePayService } from './services/tranche-pay/tranche-pay.service';
 import { PaymentMethodCreateService } from './services/payment-method-create/payment-method-create.service';
 import { PaymentMethodListService } from './services/payment-method-list/payment-method-list.service';
 import { PaymentMethodUpdateService } from './services/payment-method-update/payment-method-update.service';
-import { PaymentMethodDeleteService } from './services/payment-method-delete/payment-method-delete.service';
 import { TagCreateService } from './services/tag-create/tag-create.service';
 import { TagListService } from './services/tag-list/tag-list.service';
-import { TagUpdateService } from './services/tag-update/tag-update.service';
-import { TagDeleteService } from './services/tag-delete/tag-delete.service';
 import { BillCreateService } from './services/bill-create/bill-create.service';
 import { BillListService } from './services/bill-list/bill-list.service';
-import { BillGetService } from './services/bill-get/bill-get.service';
-import { PaymentMethodGetService } from './services/payment-method-get/payment-method-get.service';
-import { TagGetService } from './services/tag-get/tag-get.service';
-import { PayableListUseCase } from './use-cases/payable-list/payable-list.use-case';
-import { DashboardUseCase } from './use-cases/dashboard/dashboard.use-case';
+import { MonthUseCase } from './use-cases/month/month.use-case';
 import { BillUpdateService } from './services/bill-update/bill-update.service';
 import { BillDeleteService } from './services/bill-delete/bill-delete.service';
 import { ReportService } from './services/report/report.service';
@@ -48,35 +41,17 @@ import { ConsolidatedPayUseCase } from './use-cases/consolidated-pay/consolidate
 import { ReportRepository } from './repositories/report/report.repository';
 import { ConsolidatedRepository } from './repositories/consolidated/consolidated.repository';
 
-import { TransactionListController } from './controllers/transaction-list/transaction-list.controller';
-import { TransactionGetController } from './controllers/transaction-get/transaction-get.controller';
 import { TransactionCreateController } from './controllers/transaction-create/transaction-create.controller';
 import { TransactionUpdateController } from './controllers/transaction-update/transaction-update.controller';
 import { TransactionDeleteController } from './controllers/transaction-delete/transaction-delete.controller';
-import { TransactionBulkDeleteController } from './controllers/transaction-bulk-delete/transaction-bulk-delete.controller';
-import { TranchePayController } from './controllers/tranche-pay/tranche-pay.controller';
-import { TrancheDueListController } from './controllers/tranche-due-list/tranche-due-list.controller';
-import { PaymentMethodListController } from './controllers/payment-method-list/payment-method-list.controller';
 import { PaymentMethodCreateController } from './controllers/payment-method-create/payment-method-create.controller';
 import { PaymentMethodUpdateController } from './controllers/payment-method-update/payment-method-update.controller';
-import { PaymentMethodDeleteController } from './controllers/payment-method-delete/payment-method-delete.controller';
-import { TagListController } from './controllers/tag-list/tag-list.controller';
-import { TagCreateController } from './controllers/tag-create/tag-create.controller';
-import { TagUpdateController } from './controllers/tag-update/tag-update.controller';
-import { TagDeleteController } from './controllers/tag-delete/tag-delete.controller';
-import { BillListController } from './controllers/bill-list/bill-list.controller';
-import { BillGetController } from './controllers/bill-get/bill-get.controller';
-import { PaymentMethodGetController } from './controllers/payment-method-get/payment-method-get.controller';
-import { TagGetController } from './controllers/tag-get/tag-get.controller';
-import { PayableListController } from './controllers/payable-list/payable-list.controller';
-import { DashboardController } from './controllers/dashboard/dashboard.controller';
+import { MonthController } from './controllers/month/month.controller';
 import { BillCreateController } from './controllers/bill-create/bill-create.controller';
 import { BillUpdateController } from './controllers/bill-update/bill-update.controller';
 import { BillDeleteController } from './controllers/bill-delete/bill-delete.controller';
 import { BillPayController } from './controllers/bill-pay/bill-pay.controller';
-import { ConsolidatedListController } from './controllers/consolidated-list/consolidated-list.controller';
 import { ConsolidatedPayController } from './controllers/consolidated-pay/consolidated-pay.controller';
-import { ReportController } from './controllers/report/report.controller';
 
 import { TransactionCreateUseCase } from './use-cases/transaction-create/transaction-create.use-case';
 import { TransactionUpdateUseCase } from './use-cases/transaction-update/transaction-update.use-case';
@@ -99,18 +74,11 @@ const providers = [
   PaymentMethodCreateService,
   PaymentMethodListService,
   PaymentMethodUpdateService,
-  PaymentMethodDeleteService,
   TagCreateService,
   TagListService,
-  TagUpdateService,
-  TagDeleteService,
   BillCreateService,
   BillListService,
-  BillGetService,
-  PaymentMethodGetService,
-  TagGetService,
-  PayableListUseCase,
-  DashboardUseCase,
+  MonthUseCase,
   BillUpdateService,
   BillDeleteService,
   ReportService,
@@ -139,35 +107,17 @@ const providers = [
     ]),
   ],
   controllers: [
-    TransactionListController,
-    TransactionGetController,
     TransactionCreateController,
     TransactionUpdateController,
     TransactionDeleteController,
-    TransactionBulkDeleteController,
-    TrancheDueListController,
-    TranchePayController,
-    PaymentMethodListController,
     PaymentMethodCreateController,
     PaymentMethodUpdateController,
-    PaymentMethodDeleteController,
-    TagListController,
-    TagCreateController,
-    TagUpdateController,
-    TagDeleteController,
-    BillListController,
-    BillGetController,
-    PaymentMethodGetController,
-    TagGetController,
-    PayableListController,
-    DashboardController,
+    MonthController,
     BillCreateController,
     BillUpdateController,
     BillDeleteController,
     BillPayController,
-    ConsolidatedListController,
     ConsolidatedPayController,
-    ReportController,
   ],
   providers,
   exports: providers,
